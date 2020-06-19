@@ -112,10 +112,16 @@ class MNIST_Superpixel_Dataset(Dataset):
             adj_mat[sink][source] = 1.0
         return adj_mat
     def load_processed_training(self):
-        node_features = np.load('node_features.npy')
-        positions = np.load('positions.npy')
-        adj_matrices = np.load('adj_matrices.npy')
-        targets = np.load('targets.npy')
+        # To Do: Add check to see if processed files exist or fall back to process_data
+        node_feature_file = os.path.join(data_dir, "node_features.npy")
+        positions_file    = os.path.join(data_dir, "positions.npy")
+        adj_mat_file      = os.path.join(data_dir, "adj_matrices.npy")
+        targets_file      = os.path.join(data_dir, "targets.npy")
+        
+        node_features = np.load(node_feature_file)
+        positions = np.load(positions_file)
+        adj_matrices = np.load(adj_mat_file)
+        targets = np.load(targets_file)
 
         return node_features, positions, adj_matrices, targets 
 
