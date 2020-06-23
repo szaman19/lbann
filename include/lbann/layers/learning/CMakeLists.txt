@@ -9,6 +9,7 @@ set_full_path(THIS_DIR_HEADERS
   entrywise_scale_bias.hpp
   fully_connected.hpp
   fully_connected_cuda.hpp
+  graph_convolution.hpp
   learning.hpp
   )
 

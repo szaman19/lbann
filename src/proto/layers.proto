@@ -103,7 +103,7 @@ message Layer {
     ChannelwiseScaleBias channelwise_scale_bias = 329;
     EntrywiseScaleBias entrywise_scale_bias = 330;
     ChannelwiseFullyConnected channelwise_fully_connected = 331;
-
+    GraphConvolution graph_convolution = 332;
     // Loss layers
     CrossEntropy cross_entropy = 60;
     MeanSquaredError mean_squared_error = 61;
@@ -606,6 +606,20 @@ message Layer {
     ConvTensorOpsMode conv_tensor_op_mode = 13;
   }
 
+  /** @brief Graph Convolution Operator on Graphs
+   * Takes in a Node Feature Matrix and Adjacency Matrix. The feature matrix 
+   * and adjacency matrix are multiplied together with a weight matrix to 
+   * generate new node feature matrix. 
+   *
+   * The learned weight matrix is
+   * @f$ \text{node_features_dim} \times \text{output_channels} @f$
+   */
+
+  message GraphConvolution {
+    /// Number of output channels 
+    int64 num_output_channels = 1;
+    bool has_bias = 2; // default: false
+  }
   /** @brief Lookup table to embedding vectors.
    *
    *  Takes a scalar input, interprets it as an index, and outputs the
