@@ -48,6 +48,7 @@
 #include "lbann/layers/learning/embedding.hpp"
 #include "lbann/layers/learning/entrywise_scale_bias.hpp"
 #include "lbann/layers/learning/fully_connected.hpp"
+#include "lbann/layers/learning/graph_convolution.hpp"
 #include "lbann/layers/learning/learning.hpp"
 #include "lbann/layers/loss/categorical_accuracy.hpp"
 #include "lbann/layers/loss/cross_entropy.hpp"
@@ -166,6 +167,7 @@ private:
     LBANN_REGISTER_BUILDER(Embedding, embedding);
     LBANN_REGISTER_BUILDER(EntrywiseScaleBias, entrywise_scale_bias);
     LBANN_REGISTER_BUILDER(FullyConnected, fully_connected);
+    LBANN_REGISTER_BUILDER(GraphConvolution, graph_convolution);
 
     // Math layers
     LBANN_REGISTER_DEFAULT_BUILDER(Abs, abs);
