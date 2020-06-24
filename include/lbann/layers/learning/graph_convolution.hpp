@@ -79,7 +79,7 @@ public:
   description get_description() const override; 
 
 protected:
-  void setup_matrices(const El:Grid& grid) override; 
+  void setup_matrices(const El::Grid& grid) override; 
   void setup_data(size_t max_mini_batch_size) override; 
   void fp_compute(); //Forward-Propagation
   void bp_compute(); //Backward-Propagation
@@ -93,7 +93,7 @@ private:
   /** Bias weights gradient.
    *
    */
-  AbsDistMatrixType * mbias_gradient; 
+  AbsDistMatrixType* m_bias_gradient; 
   
   /** Deallocate distributed matrices. */
   void deallocate_matrices(){

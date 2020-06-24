@@ -38,7 +38,8 @@
 namespace lbann {
 
 template <typename TensorDataType, data_layout T_layout, El: Device Dev>
-graph_convolution_layer <TensorDataType, T_layout, Dev> :: graph_convolution_layer(
+graph_convolution_layer <TensorDataType, T_layout, Dev> 
+:: graph_convolution_layer(
   lbann_comm *comm,
   int output_channel, 
   WeightsType* weight, 
@@ -53,9 +54,63 @@ graph_convolution_layer <TensorDataType, T_layout, Dev> :: graph_convolution_lay
   }else{
     m_bias_scalling_factor = El::TypeTraits<TensorDataType>::Zero();
   }
+  //The layer should have 2 parents. Node feature and adjacency matrix 
+  m_expected_num_parent_layers = 2; 
+} // Constructor
 
 
-} // Constructor 
+// Setup layer data and allocate memoery for disributed matrices
+template <typename TensorDataType, data_layout T_layout, El: Device Dev>
+void graph_convolution_layer <TensorDataType, T_layout, Dev> 
+::setup_matrices(const El::Grid& grid) {
+  deallocate_matrices();
+  if(Dev == El::Device::CPU){
+    if (T_layout ==data_layout::MODEL_PARALLEL){
+    } else if (T_layout == data_layout::DATA_PARALLEL){
+      this->m_bias_gradient = 
+        new El:DistMatrix<TensorDataType,
+                          El::MC,El::STAR,
+                          El::ELEMENT,
+                          El::Device::CPU>(grid);
+    } else if (T_layout == data_layout::DATA_PARALLEL){
+      this->m_bias_gradient =
+        new El::DistMatrix<TensorDataType,
+                           El::STAR,El::STAR,
+                           El::ELEMENT,
+                           El::Device::CPU>(grid);
+    }
+  }
+} // Setup Matrices 
+template <typename TensorDataType, data_layout T_layout, El: Device Dev>
+graph_convolution_layer * graph_convolution_layer <TensorDataType, T_layout, Dev> 
+:: copy (){
+} // Copy 
+template <typename TensorDataType, data_layout T_layout, El: Device Dev>
+void graph_convolution_layer <TensorDataType, T_layout, Dev> 
+setup_data(size_t max_mini_batch_size){
+  const auto& node_features = 
+
+} // Setup Data 
+
+template <typename TensorDataType>
+void fp_compute_impl(graph_convolution_layer<TensorDataType, data_layout::DATA_PARALLEL,El::Device::CPU>& l){
+  // Matrices 
+
+  const auto& local_node_features = l.get_local_prev_activations(0);
+  const auto& local_adjacency_mat = l.get_local_prev_activations(1);
+  
+  get_num_parents
+ } //Data_Parallel CPU Forward Prop
+
+template <typename TensorDataType>
+void bp_compute_impl(graph_convolution_layer<TensorDataType, data_layout::DATA_PARALLEL, El::Device::CPU>& l){
+  // Matrices 
+  const auto& local_node_features = l.get_local_prev_activations(0);
+  const auto& local_adjacency_mat = l.get_local_prev_activations(1); 
+
+  //Use the identity (AB).T = (B.T)(A.T)
+
+} // Data_Parellel CPU Bavkward Prop 
 
 } //namespace lbann
 
