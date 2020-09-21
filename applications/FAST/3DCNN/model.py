@@ -1,8 +1,13 @@
+import argparse
 import lbann 
 import lbann.modules as nn
 import os 
 import os.path as osp 
 import sys 
+import lbann.contrib.launcher 
+import lbann.contrib.args 
+
+from lbann.util import str_list 
 
 def make_data_reader():
     cur_dir = osp.dirname(osp.realpath(__file__))
@@ -21,11 +26,12 @@ def make_data_reader():
     _reader.python.num_samples_function = 'num_train_samples'
     _reader.python.sample_dims_function = 'sample_dims'
 
-def CNN3D_Model():
+def CNN3D_Model( num_epochs = 100, 
+                 callbacks = []):
     ''' 3D CNN model from Fusion models for 
         Atomic and Molecular Structures
     '''
-    input_ = lbann.Input(target_model = 'regression')
+    input_ = lbann.Input(target_mode = 'regression')
     
     data = lbann.Identity(input_)
     
@@ -35,21 +41,21 @@ def CNN3D_Model():
     sliced_data = lbann.Slice(data, slice_points = slice_points)
     x = lbann.Identity(sliced_data, name = "sata_sample")
     y = lbann.Identity(sliced_data, name = "target")
-    x = lbann.Reshapce(x, dims = "19 48 48 48")
+    x = lbann.Reshape(x, dims = "19 48 48 48")
     
-    conv1 = nn.Convolution3DModule(out_channels = 64,
+    conv1 = nn.Convolution3dModule(out_channels = 64,
                                    kernel_size = 7)
     
-    conv2 = nn.Convolution3DModule(out_channel = 64,
+    conv2 = nn.Convolution3dModule(out_channels = 64,
                                    kernel_size = 7)
     
-    conv3 = nn.Convolution3DModule(out_channel = 64,
+    conv3 = nn.Convolution3dModule(out_channels = 64,
                                    kernel_size = 7)
 
-    conv4 = nn.Convolution3DModule(out_channel = 128,
+    conv4 = nn.Convolution3dModule(out_channels = 128,
                                    kernel_size = 7)
     
-    conv5 = nn.Convolution3DModule(out_channel = 256,
+    conv5 = nn.Convolution3dModule(out_channels = 256,
                                    kernel_size = 5)
     
     fc1 = nn.FullyConnectedModule(size = 10)
@@ -78,25 +84,66 @@ def CNN3D_Model():
     x = lbann.Relu(x)
     x = lbann.BatchNormalization(x)
     
-    x = lbann.Flatten(x)
     x = fc1(x)
     x = fc2(x)
     
-    loss = lbann.ManAbsoluteError([x, y], name='MAE_loss')
+    loss = lbann.MeanAbsoluteError([x, y], name='MAE_loss')
     
+    layers = lbann.traverse_layer_graph(input_)
     metrics = [lbann.Metric(loss, name = 'MAE') ]
     
+    model = lbann.Model(num_epochs, 
+                        layers,
+                        objective_function = loss,
+                        metrics = metrics, 
+                        callbacks = callbacks)
+    return model
+
+desc = ("Training 3D-CNN on PDBBind Data using LBANN")
+
+parser = argparse.ArgumentParser(description = desc)
+
+parser.add_argument(
+    '--job-name', action='store', default='mofae', type=str,
+    help='job name', metavar='NAME')
+parser.add_argument(
+    '--mini-batch-size', action='store', default=128, type=int,
+    help='mini-batch size (default: 128)', metavar='NUM')
+parser.add_argument(
+    '--num-epochs', action='store', default=100, type=int,
+    help='number of epochs (default: 100)', metavar='NUM')
+
+lbann.contrib.args.add_scheduler_arguments(parser)
+args = parser.parse_args()
+
+kwargs = lbann.contrib.args.get_scheduler_kwargs(args)
+                       
 def main():
-    model = CNN3D_Model()
-    opt = lbann.Adam(learn_rare = 1e-2,
+    
+    num_epochs = args.num_epochs
+    mini_batch_size = args.mini_batch_size
+
+    opt = lbann.Adam(learn_rate = 1e-2,
                      beta1 = 0.9,
                      beta2 = 0.99, 
                      eps = 1e-8
                     )
     data_reader = make_data_reader() 
+    
     trainer = lbann.Trainer(mini_batch_size = mini_batch_size,
                             name = "FAST_3DCNN")
+    
 
+    print_model = lbann.CallbackPrintModelDescription() #Prints initial Model after Setup
+    training_output = lbann.CallbackPrint( interval = 1,
+    print_global_stat_only = False) #Prints training progress
+    gpu_usage = lbann.CallbackGPUMemoryUsage()
+
+    callbacks = [print_model, training_output, gpu_usage]
+    
+    model = CNN3D_Model(num_epochs, callbacks)
+
+    lbann.contrib.launcher.run(trainer, model, data_reader, opt, **kwargs)
 
 if __name__ == '__main__':
     main()    
