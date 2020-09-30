@@ -54,9 +54,6 @@ class PDB3DCNNDataset():
             
             print("Processing {} / {} ".format(i, len(list(h5file.keys()))),end="\r", flush=True)
             
-            if (i == 100):
-                break 
-
         self.data = np.array(self.data)
         
         fname = self.fname_root + self.dataset_type + '.npy'
@@ -76,4 +73,4 @@ if __name__ == '__main__':
     
     assert len(dataset[0]) == (48*48*48*19) + 1 
 
-
+    print(len(dataset))

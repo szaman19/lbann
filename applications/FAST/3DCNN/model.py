@@ -12,8 +12,7 @@ from lbann.util import str_list
 def make_data_reader():
     cur_dir = osp.dirname(osp.realpath(__file__))
     dataset_dir = osp.dirname(cur_dir)
-
-   
+    
     reader = lbann.reader_pb2.DataReader()
     _reader = reader.reader.add()
     _reader.name = 'python'
@@ -21,17 +20,19 @@ def make_data_reader():
     _reader.shuffle = True
     _reader.percent_of_data_to_use = 1.0
     _reader.python.module = 'dataset'
-    _reader.python.module_dir = cur_dir
+    _reader.python.module_dir = dataset_dir
     _reader.python.sample_function = 'get_train'
     _reader.python.num_samples_function = 'num_train_samples'
     _reader.python.sample_dims_function = 'sample_dims'
+
+    return reader
 
 def CNN3D_Model( num_epochs = 100, 
                  callbacks = []):
     ''' 3D CNN model from Fusion models for 
         Atomic and Molecular Structures
     '''
-    input_ = lbann.Input(target_mode = 'regression')
+    input_ = lbann.Input(target_mode = 'N/A')
     
     data = lbann.Identity(input_)
     
@@ -42,48 +43,126 @@ def CNN3D_Model( num_epochs = 100,
     x = lbann.Identity(sliced_data, name = "sata_sample")
     y = lbann.Identity(sliced_data, name = "target")
     x = lbann.Reshape(x, dims = "19 48 48 48")
-    
-    conv1 = nn.Convolution3dModule(out_channels = 64,
-                                   kernel_size = 7)
-    
-    conv2 = nn.Convolution3dModule(out_channels = 64,
-                                   kernel_size = 7)
-    
-    conv3 = nn.Convolution3dModule(out_channels = 64,
-                                   kernel_size = 7)
-
-    conv4 = nn.Convolution3dModule(out_channels = 128,
-                                   kernel_size = 7)
-    
-    conv5 = nn.Convolution3dModule(out_channels = 256,
-                                   kernel_size = 5)
-    
+       
     fc1 = nn.FullyConnectedModule(size = 10)
     fc2 = nn.FullyConnectedModule(size = 1)
  
-    x = conv1(x)
-    x = lbann.BatchNormalization(x)
-    x_1 = lbann.Relu(x)
+    conv_1_kernel = str_list([7,7,7])
+    conv_1_res_1_kernel = str_list([7,7,7])
+    conv_1_res_2_kernel = str_list([7,7,7])
+    conv_2_kernel = str_list([7,7,7])
+    conv_3_kernel = str_list([5,5,5])
+    
+   
+    conv_1_stride = str_list([2,2,2])
+    conv_1_res_1_stride = str_list([1,1,1])
+    conv_1_res_2_stride = str_list([1,1,1])
+    conv_2_stride = str_list([3,3,3])
+    conv_3_stride = str_list([2,2,2])
 
-    x = conv2(x)
-    x = lbann.Relu(x)
-    x = lbann.BatchNormalization(x)
-    x_2 = lbann.Sum(x, x_1)
+    avg_pool3d_ksize = str_list([2,2,2])
+    avg_pool3d_stride = str_list([2,2,2])
+
+    zero_padding = str_list([0,0,0])
+    x = lbann.Convolution(x,
+                          num_dims = 3,
+                          num_output_channels = 64,
+                          num_groups = 1, 
+                          conv_dims = conv_1_kernel,
+                          conv_strides = conv_1_stride,
+                          conv_pads = str_list([3,3,3]),
+                          has_bias = True,
+                          has_vectors = True,
+                          name="Conv_1")
+   
+    x = lbann.Relu(x,
+                     name = "Relu_1")
     
-    x = conv3(x)
-    x = lbann.Relu(x)
-    x = lbann.BatchNormalization(x)
+    x_1 = lbann.BatchNormalization(x,
+                                 name = "BN_1")
+    x = lbann.Convolution(x_1,
+                          num_dims = 3, 
+                          num_output_channels = 64, 
+                          num_groups = 1, 
+                          conv_dims = conv_1_res_1_kernel, 
+                          conv_strides = conv_1_res_1_stride,
+                          conv_pads = str_list([3,3,3]),
+                          has_bias = True,
+                          has_vectors = True,
+                          name="Conv_1_res_1")
+    x = lbann.Relu(x,
+                   name="Relu_res_1")
+    x = lbann.BatchNormalization(x,
+                                 name="BN_Res_1")
     
-    x_3 = lbann.Sum(x, x_1)
+    x_2 = lbann.Sum(x, x_1, name="Conv_Layer_1_+Conv_Layer_Res_1")
     
-    x = conv4(x)
-    x = lbann.Relu(x)
-    x = lbann.BatchNormalization(x)
+    x = lbann.Convolution(x_2,
+                          num_dims = 3,
+                          num_output_channels = 64,
+                          num_groups = 1, 
+                          conv_dims = conv_1_res_2_kernel,
+                          conv_strides = conv_1_res_2_stride, 
+                          conv_pads = str_list([3,3,3]),
+                          has_bias = True,
+                          has_vectors = True,
+                          name="Conv_1_res_2")
+    x = lbann.Relu(x,
+                   name="Relu_res_2")
     
-    x = conv5(x)
-    x = lbann.Relu(x)
-    x = lbann.BatchNormalization(x)
+    x = lbann.BatchNormalization(x,
+                                 name="BN_res_2")
     
+    x_3 = lbann.Sum(x, x_1, name="Conv_Layer_1+Conv_Layer_3")
+    
+    x = lbann.Convolution(x_3,
+                          num_dims = 3,
+                          num_output_channels = 96,
+                          num_groups = 1,
+                          conv_dims = conv_2_kernel, 
+                          conv_strides = conv_2_stride,
+                          conv_pads = zero_padding,
+                          has_bias = True,
+                          has_vectors = True, 
+                          name = "Conv_2")
+    x = lbann.Relu(x,
+                   name="Relu_2")
+    x = lbann.BatchNormalization(x,
+                                 name="BN_2")
+    
+    x = lbann.Pooling(x,
+                      num_dims = 3,
+                      pool_dims = avg_pool3d_ksize,
+                      pool_strides = avg_pool3d_stride,
+                      pool_pads = zero_padding,
+                      has_vectors = True,
+                      pool_mode = "average_no_pad",
+                      name = "avg_pooling_1")
+
+    x = lbann.Convolution(x,
+                          num_dims = 3,
+                          num_output_channels = 128, 
+                          num_groups = 1, 
+                          conv_dims = conv_3_kernel,
+                          conv_strides = conv_3_stride, 
+                          conv_pads = str_list([1,1,1]),
+                          has_bias = True, 
+                          has_vectors = True, 
+                          name = "Conv_3")
+    x = lbann.Relu(x,
+                   name="Relu_3")
+    x = lbann.BatchNormalization(x,
+                                 name="BN_3")
+    
+    x = lbann.Pooling(x,
+                      num_dims = 3,
+                      pool_dims = avg_pool3d_ksize,
+                      pool_strides = avg_pool3d_stride,
+                      pool_pads = str_list([1,1,1]), 
+                      has_vectors = True,
+                      pool_mode = "average_no_pad",
+                      name = "avg_pooling_2")
+
     x = fc1(x)
     x = fc2(x)
     
@@ -138,8 +217,9 @@ def main():
     training_output = lbann.CallbackPrint( interval = 1,
     print_global_stat_only = False) #Prints training progress
     gpu_usage = lbann.CallbackGPUMemoryUsage()
-
-    callbacks = [print_model, training_output, gpu_usage]
+    timer = lbann.CallbackTimer()
+    
+    callbacks = [print_model, training_output, gpu_usage, timer]
     
     model = CNN3D_Model(num_epochs, callbacks)
 
