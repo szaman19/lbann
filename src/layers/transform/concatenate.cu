@@ -27,6 +27,7 @@
 #define LBANN_CONCATENATE_LAYER_INSTANTIATE
 #include "lbann/layers/transform/concatenate.hpp"
 #include "lbann/utils/gpu/helpers.hpp"
+#include <iostream>
 
 namespace lbann {
 
@@ -53,10 +54,19 @@ __global__ void concat4d_kernel(
   const size_t gidx = threadIdx.x + blockIdx.x * blockDim.x;
   const size_t gidy = threadIdx.y + blockIdx.y * blockDim.y;
   const size_t gidz = threadIdx.z + blockIdx.z * blockDim.z;
-  const size_t nthreadsx = gridDim.x * blockDim.x;
   const size_t nthreadsy = gridDim.y * blockDim.y;
   const size_t nthreadsz = gridDim.z * blockDim.z;
 
+  std::cout << "nthreadsx " << nthreadsx << '\n';
+  std::cout << "nthreadsy " << nthreadsy << '\n';
+  std::cout << "nthreadsz " << nthreadsz << '\n';
+
+  if (gridDim.x * blockDim.x > 65535){
+    const size_t nthreadsx = 65535;
+  }else{
+    const size_t nthreadsx = gridDim.x * blockDim.x;
+  }
+  
   for (size_t j=0; j<num_inputs; ++j) {
 
     // Current input tensor
