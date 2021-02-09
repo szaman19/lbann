@@ -65,6 +65,10 @@ elif is_olcf_center():
     if lbann.contrib.olcf.systems.is_olcf_system():
         import lbann.contrib.olcf.launcher
         launcher = lbann.contrib.olcf.launcher
+else:
+    _center = 'generic'
+    import lbann.contrib.generic.launcher
+    launcher = lbann.contrib.generic.launcher
 
 def compute_center():
     """Name of organization that operates current system."""

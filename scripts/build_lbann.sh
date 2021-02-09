@@ -451,7 +451,7 @@ fi
 
 # If the spack build directory does not exist, create a tmp directory and link it
 if [[ ! -e "${SPACK_BUILD_DIR}" && -z "${NO_TMP_BUILD_DIR}" && -z "${DRY_RUN:-}" ]]; then
-    tmp_dir=$(mktemp -d -t lbann-spack-build-${LBANN_SPEC_HASH}-$(date +%Y-%m-%d-%H%M%S)-XXXXXXXXXX)
+    tmp_dir=$(mktemp -d -t /home/shehtab/tmp/lbann-spack-build-${LBANN_SPEC_HASH}-$(date +%Y-%m-%d-%H%M%S)-XXXXXXXXXX)
     echo ${tmp_dir}
     CMD="ln -s ${tmp_dir} spack-build-${LBANN_SPEC_HASH}"
     echo ${CMD}
