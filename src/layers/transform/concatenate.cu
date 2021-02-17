@@ -54,18 +54,9 @@ __global__ void concat4d_kernel(
   const size_t gidx = threadIdx.x + blockIdx.x * blockDim.x;
   const size_t gidy = threadIdx.y + blockIdx.y * blockDim.y;
   const size_t gidz = threadIdx.z + blockIdx.z * blockDim.z;
+  const size_t nthreadsx = gridDim.x * blockDim.x;
   const size_t nthreadsy = gridDim.y * blockDim.y;
   const size_t nthreadsz = gridDim.z * blockDim.z;
-
-  std::cout << "nthreadsx " << nthreadsx << '\n';
-  std::cout << "nthreadsy " << nthreadsy << '\n';
-  std::cout << "nthreadsz " << nthreadsz << '\n';
-
-  if (gridDim.x * blockDim.x > 65535){
-    const size_t nthreadsx = 65535;
-  }else{
-    const size_t nthreadsx = gridDim.x * blockDim.x;
-  }
   
   for (size_t j=0; j<num_inputs; ++j) {
 
@@ -322,9 +313,9 @@ void fp_compute_impl(
     constexpr size_t block_size = 64;
     dim3 block_dims, grid_dims;
     block_dims.x = block_size;
-    grid_dims.x = (max_input_dims[3] + block_size - 1) / block_size;
-    grid_dims.y = max_input_dims[2];
-    grid_dims.z = max_input_dims[1];
+    grid_dims.x = El::Min((max_input_dims[3] + block_size - 1) / block_size, 65535);
+    grid_dims.y = El::Min(max_input_dims[2], 65535);
+    grid_dims.z = El::Min(max_input_dims[1], 65535);  
     hydrogen::gpu::LaunchKernel(
       concat4d_kernel<TensorDataType>,
       grid_dims, block_dims, 0, sync_info,
@@ -477,9 +468,10 @@ void bp_compute_impl(
     constexpr size_t block_size = 64;
     dim3 block_dims, grid_dims;
     block_dims.x = block_size;
-    grid_dims.x = (max_input_grad_dims[3] + block_size - 1) / block_size;
-    grid_dims.y = max_input_grad_dims[2];
-    grid_dims.z = max_input_grad_dims[1];
+   
+    grid_dims.x = El::Min((max_input_grad_dims[3] + block_size - 1) / block_size, 65535);
+    grid_dims.y = El::Min(max_input_grad_dims[2], 65535);
+    grid_dims.z = El::Min(max_input_grad_dims[1], 65535);
     hydrogen::gpu::LaunchKernel(
       slice4d_kernel<TensorDataType>,
       grid_dims, block_dims, 0, sync_info,

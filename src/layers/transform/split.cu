@@ -32,6 +32,8 @@
 #include "distconv/tensor/algorithms_cuda.hpp"
 #endif // LBANN_HAS_DISTCONV
 
+#include <iostream>
+
 namespace lbann {
 
 LBANN_LAYER_DEFAULT_BUILDER(split)

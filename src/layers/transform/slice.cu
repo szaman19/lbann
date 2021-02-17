@@ -27,6 +27,7 @@
 #define LBANN_SLICE_LAYER_INSTANTIATE
 #include "lbann/layers/transform/slice.hpp"
 #include "lbann/utils/gpu/helpers.hpp"
+#include <iostream>
 
 namespace lbann {
 
@@ -304,10 +305,10 @@ void fp_compute_impl(
   if (max_output_size > 0) {
     constexpr size_t block_size = 64;
     dim3 block_dims, grid_dims;
-    block_dims.x = block_size;
-    grid_dims.x = (max_output_dims[3] + block_size - 1) / block_size;
-    grid_dims.y = max_output_dims[2];
-    grid_dims.z = max_output_dims[1];
+    block_dims.x = block_size; 
+    grid_dims.x = El::Min((max_output_dims[3] + block_size - 1) / block_size, 65535);
+    grid_dims.y = El::Min(max_output_dims[2], 65535);
+    grid_dims.z = El::Min(max_output_dims[1], 65535); 
     hydrogen::gpu::LaunchKernel(
       slice4d_kernel<TensorDataType>,
       grid_dims, block_dims, 0, sync_info,
@@ -456,9 +457,11 @@ void bp_compute_impl(
     constexpr size_t block_size = 64;
     dim3 block_dims, grid_dims;
     block_dims.x = block_size;
-    grid_dims.x = (max_output_grad_dims[3] + block_size - 1) / block_size;
-    grid_dims.y = max_output_grad_dims[2];
-    grid_dims.z = max_output_grad_dims[1];
+    grid_dims.x = El::Min((max_output_grad_dims[3] + block_size - 1) / block_size, 65535);
+    grid_dims.y = El::Min(max_output_grad_dims[2], 65535);
+    grid_dims.z = El::Min(max_output_grad_dims[1], 65535);
+
+
     hydrogen::gpu::LaunchKernel(
       concat4d_kernel<TensorDataType>,
       grid_dims, block_dims, 0, sync_info,
