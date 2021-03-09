@@ -7,7 +7,7 @@ class GINConv(Module):
     """Details of the kernel is available in: 
        https://arxiv.org/abs/1810.00826
     """
-    global_count = 0; 
+    global_count = 0 
 
     def __init__(self, 
                  sequential_nn,
