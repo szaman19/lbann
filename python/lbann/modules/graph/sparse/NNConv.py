@@ -117,6 +117,9 @@ class NNConv(Module):
                                     edge_indices,
                                     dims=node_feature_size,
                                     name=self.name+"_aggregate")
+        edge_reduce = lbann.Reshape(edge_reduce,
+                                    dims=str_list([self.num_nodes,
+                                                   self.output_channels]))
         return edge_reduce
 
     def forward(self,
