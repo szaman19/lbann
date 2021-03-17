@@ -52,7 +52,8 @@ class Synthetic_Scatter_Edge(object):
         edge_indices, neighbor_fts, edge_fts = \
             self.generate_edges(node_features)
 
-        self.dataset = [(node_features[i], neighbor_fts[i], edge_indices[i], edge_fts[i]) for
+        targets = np.random.random((self.num_samples,1))
+        self.dataset = [(node_features[i], neighbor_fts[i], edge_indices[i], edge_fts[i], targets[i]) for
                         i in range(self.num_samples)]
         _file_string = \
             "synth_scatter_graphs_{}_{}_{}_{}_{}.p".format(self.num_samples,
@@ -161,4 +162,4 @@ def sample_dims_func():
     edge_indices_size = dataset.max_edges
     edge_features_size = dataset.max_edges * number_edge_features
     return node_feature_size + neighbor_features_size \
-        + edge_indices_size + edge_features_size
+        + edge_indices_size + edge_features_size + 1
