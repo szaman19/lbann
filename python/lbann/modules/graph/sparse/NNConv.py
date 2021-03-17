@@ -123,7 +123,7 @@ class NNConv(Module):
                                     dims=str_list([node_feature_size]))
         edge_reduce = lbann.Scatter(edge_values,
                                     edge_indices,
-                                    dims=node_feature_size,
+                                    dims=str_list([node_feature_size]),
                                     name=self.name+"_aggregate")
         edge_reduce = lbann.Reshape(edge_reduce,
                                     dims=str_list([self.num_nodes,

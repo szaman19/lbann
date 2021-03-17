@@ -169,3 +169,4 @@ if __name__ == '__main__':
   print(num_samples_func())
   print(sample_dims_func())
   print(get_sample_func(0).shape)
+  print(dataset.max_edges)
