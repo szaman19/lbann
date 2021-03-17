@@ -18,6 +18,10 @@ class DenseNNConv(Module):
       super(DenseNNConv, self).__init__()
       self.name = (name if name
                    else 'Dense_GCN_{}'.format(DenseNNConv.global_count))
+      self.output_channels = output_channels
+      self.input_channels = input_channels
+      self.num_nodes = num_nodes
+      self.node_activation = activation
       self.node_nn = \
           ChannelwiseFullyConnectedModule(self.output_channels,
                                           bias=False,
@@ -36,11 +40,18 @@ class DenseNNConv(Module):
     edge_ft_shape = str_list([num_edges, self.input_channels, self.output_channels])
     node_ft_tensor_shape = str_list([self.num_nodes, self.num_nodes, self.output_channels])
     node_ft_mat_shape = str_list([self.num_nodes, self.output_channels])
+    
+    transformed_edge_ft_tensor = None
 
-    transformed_edge_ft_tensor = self.edge_nn(edge_features_tensor)
+    for layer in self.edge_nn:
+        if transformed_edge_ft_tensor is not None:
+            transformed_edge_ft_tensor = layer(transformed_edge_ft_tensor)
+        else:
+            transformed_edge_ft_tensor = layer(edge_features_tensor)
 
     transformed_edge_ft_tensor = lbann.Reshape(transformed_edge_ft_tensor,
-                                               dims=edge_ft_shape)
+                                               dims=edge_ft_shape,
+                                               name=self.name+"_edge_ft_reshape")
 
     new_node_features = lbann.MatMul(node_features_tensor, transformed_edge_ft_tensor)
     new_node_features = lbann.Reshape(new_node_features,
@@ -52,6 +63,6 @@ class DenseNNConv(Module):
                                       dims=node_ft_mat_shape)
     updated_nodes = self.node_nn(node_features_mat)
 
-    out = lbann.sum(new_node_features, updated_nodes)
+    out = lbann.Sum(new_node_features, updated_nodes)
 
     return out
