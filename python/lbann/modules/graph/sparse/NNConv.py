@@ -118,9 +118,11 @@ class NNConv(Module):
         """
 
         node_feature_size = self.num_nodes * self.output_channels
+        edge_feature_size = self.num_edges * self.output_channels
 
         edge_values = lbann.Reshape(edge_values,
-                                    dims=str_list([node_feature_size]))
+                                    dims=str_list([edge_feature_size]),
+                                    name=self.name+"_neighbor_features")
         edge_reduce = lbann.Scatter(edge_values,
                                     edge_indices,
                                     dims=str_list([node_feature_size]),
@@ -156,7 +158,7 @@ class NNConv(Module):
         updated_node_fts, neighbor_vals = self.message(node_features,
                                                        neighbor_features,
                                                        edge_features)
-        aggregated_fts = self.aggregate(edge_features, edge_index)
+        aggregated_fts = self.aggregate(neighbor_vals, edge_index)
 
         update = lbann.Sum(updated_node_fts,
                            aggregated_fts,

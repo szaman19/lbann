@@ -97,7 +97,7 @@ def graph_data_splitter(_input):
     node_feature_dims = str_list([NUM_NODES, NUM_NODES_FEATURES])
     neighbor_feature_dims = str_list([NUM_EDGES, 1, NUM_NODES_FEATURES])
     edge_feature_dims = str_list([NUM_EDGES, NUM_EDGE_FEATURES])
-    edge_indices_dims = str_list([NUM_EDGES, 1])
+    edge_indices_dims = str_list([NUM_EDGES])
     target_dims = str_list([1])
 
     node_feature_mat = lbann.Reshape(graph_data_id[0],
@@ -164,10 +164,19 @@ def make_model():
     _input = lbann.Input(target_mode='N/A')
     node_feature_mat, neighbor_feature_mat, edge_feature_mat, edge_indices, target = \
         graph_data_splitter(_input)
+    modified_edge_indices = []
+    for i in range(out_channel):
+        offset = lbann.Constant(value=i,
+                                num_neurons=str(NUM_EDGES),
+                                name="edge_val_col_{}".format(i))
+
+        _updated_edge_ind = lbann.Sum(edge_indices, offset)
+        modified_edge_indices.append(_updated_edge_ind)
+    modified_edge_indices = lbann.Concatenation(modified_edge_indices)
     node_fts = NNConvLayer(node_feature_mat,
                            neighbor_feature_mat,
                            edge_feature_mat,
-                           edge_indices,
+                           modified_edge_indices,
                            in_channel,
                            out_channel)
     graph_embedding = reduction(node_fts, out_channel)

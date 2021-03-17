@@ -1,5 +1,6 @@
 import numpy as np
 import pickle
+import os.path as osp
 
 
 class Synthetic_Scatter_Edge(object):
@@ -33,6 +34,8 @@ class Synthetic_Scatter_Edge(object):
                                                                               max_edges,
                                                                               node_features,
                                                                               edge_features)
+                data_dir = osp.dirname(osp.realpath(__file__))
+                _file_string = osp.join(data_dir, _file_string)
                 try:
                     with open(_file_string, 'rb') as f:
                         self.dataset = pickle.load(f)
@@ -132,7 +135,7 @@ number_samples = 10000
 number_nodes = 10
 number_node_features = 10
 number_edge_features = 1
-max_edges = 52
+max_edges = 53
 
 dataset = Synthetic_Scatter_Edge(number_samples,
                                  number_nodes,
@@ -170,3 +173,7 @@ if __name__ == '__main__':
   print(sample_dims_func())
   print(get_sample_func(0).shape)
   print(dataset.max_edges)
+
+  for i in range(num_samples_func()):
+    print(get_sample_func(i).shape)
+    
