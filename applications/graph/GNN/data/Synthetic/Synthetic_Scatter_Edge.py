@@ -23,9 +23,9 @@ class Synthetic_Scatter_Edge(object):
         self.dataset = None
 
         if (use_cached):
-            print("Using cached data")
             if (cached_file):
                 self.dataset = np.load(cached_file)
+                print("Using cached data")
             else:
 
                 _file_string = "synth_scatter_graphs_{}_{}_{}_{}_{}.p".format(num_samples,
@@ -52,7 +52,7 @@ class Synthetic_Scatter_Edge(object):
         edge_indices, neighbor_fts, edge_fts = \
             self.generate_edges(node_features)
 
-        targets = np.random.random((self.num_samples,1))
+        targets = np.random.random((self.num_samples, 1))
         self.dataset = [(node_features[i], neighbor_fts[i], edge_indices[i], edge_fts[i], targets[i]) for
                         i in range(self.num_samples)]
         _file_string = \
@@ -142,12 +142,13 @@ dataset = Synthetic_Scatter_Edge(number_samples,
 
 
 def get_sample_func(index):
-    node_fts, neighbor_fts, edge_ind, edge_fts = dataset.get_sample[index]
+    node_fts, neighbor_fts, edge_ind, edge_fts, target = dataset.get_sample(index)
 
     _data = np.concatenate([node_fts.flatten(),
                             neighbor_fts.flatten(),
                             edge_ind[0].flatten(),
-                            edge_fts.flatten()])
+                            edge_fts.flatten(),
+                            target])
     _data = np.float32(_data)
     return _data
 
@@ -161,5 +162,10 @@ def sample_dims_func():
     neighbor_features_size = dataset.max_edges * number_node_features
     edge_indices_size = dataset.max_edges
     edge_features_size = dataset.max_edges * number_edge_features
-    return node_feature_size + neighbor_features_size \
-        + edge_indices_size + edge_features_size + 1
+    return (node_feature_size + neighbor_features_size + edge_indices_size + edge_features_size + 1,)
+
+
+if __name__ == '__main__':
+  print(num_samples_func())
+  print(sample_dims_func())
+  print(get_sample_func(0).shape)

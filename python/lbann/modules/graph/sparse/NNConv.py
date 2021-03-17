@@ -84,7 +84,13 @@ class NNConv(Module):
 
         updated_node_features = self.node_nn(node_features)
 
-        edge_update = self.edge_nn(edge_features)
+        edge_update = None
+        for layer in self.edge_nn:
+
+            if edge_update:
+                edge_update = layer(edge_update)
+            else:
+                edge_update = layer(edge_features)
 
         edge_values = \
             lbann.Reshape(edge_update,
