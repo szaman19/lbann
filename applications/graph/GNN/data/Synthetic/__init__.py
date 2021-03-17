@@ -8,7 +8,7 @@ def make_data_reader(classname,
                      sample='get_sample_func',
                      num_samples='num_samples_func',
                      sample_dims='sample_dims_func'):
-    reader = lbann.reader.pb2.DataReader()
+    reader = lbann.reader_pb2.DataReader()
     _reader = reader.reader.add()
     _reader.name = 'python'
     _reader.role = 'train'

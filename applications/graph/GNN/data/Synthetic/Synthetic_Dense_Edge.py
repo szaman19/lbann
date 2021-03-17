@@ -36,9 +36,8 @@ class Synthetic_Dense_Edge(object):
       if (cached_file):
         self.dataset = np.load(cached_file)
       else:
-        file_string = "synth_dense_graphs_{}_{}_{}_{}_{}.p".format(num_samples,
+        file_string = "synth_dense_graphs_{}_{}_{}_{}.p".format(num_samples,
                                                                    num_nodes,
-                                                                   max_edges,
                                                                    node_features,
                                                                    edge_features)
         try:
@@ -50,39 +49,34 @@ class Synthetic_Dense_Edge(object):
     else:
       self.generate_data()
 
-    def generate_data(self):
-      """Generate
-      """
-
-      self.dataset = np.random.random((self.number_samples, self.sample_dim))
-      _file_string = "synth_dense_graphs_{}_{}_{}_{}_{}.p".format(self.num_samples,
+  def generate_data(self):
+    self.dataset = np.random.random((self.num_samples, self.sample_dim))
+    _file_string = "synth_dense_graphs_{}_{}_{}_{}.p".format(self.num_samples,
                                                                   self.num_nodes,
-                                                                  self.max_edges,
                                                                   self.node_features,
                                                                   self.edge_features)
-      with open(_file_string, 'wb') as f:
+    with open(_file_string, 'wb') as f:
         pickle.dump(self.dataset, f)
 
 
-def get_sample(self, i):
-  return self.dataset[i]
+  def get_sample(self, i):
+    return self.dataset[i]
 
 
 number_samples = 10000
 number_nodes = 10
 number_node_features = 10
 number_edge_features = 1
-max_edges = 52
+
 
 dataset = Synthetic_Dense_Edge(number_samples,
                                number_nodes,
                                number_node_features,
-                               number_edge_features,
-                               max_edges=max_edges)
+                               number_edge_features)
 
 
 def get_sample_func(index):
-  _data = dataset.get_sample[index]
+  _data = dataset.get_sample(index)
   _data = np.float32(_data)
   return _data
 
@@ -92,4 +86,8 @@ def num_samples_func():
 
 
 def sample_dims_func():
-  return dataset.sample_dim
+  return (dataset.sample_dim,)
+
+if __name__ == '__main__':
+  print(dataset.sample_dim)
+  

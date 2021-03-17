@@ -26,7 +26,7 @@ parser.add_argument(
     help="mini-batch size (default: 32)", metavar='NUM')
 
 parser.add_argument(
-    '--num-nodes', action='store', default=100, type=int,
+    '--num-nodes', action='store', default=10, type=int,
     help='number of nodes (deafult: 10)', metavar='NUM')
 
 parser.add_argument(
@@ -54,9 +54,9 @@ NUM_EPOCHS = args.num_epochs
 JOB_NAME = args.job_name
 NUM_NODES = args.num_nodes
 NUM_EDGES = NUM_NODES ** 2
-NUM_NODES_FEATURES = args.num_nodes_features
+NUM_NODES_FEATURES = args.num_node_features
 NUM_EDGE_FEATURES = args.num_edge_features
-NUM_OUT_FEATURES = args.num_out_features
+NUM_OUT_FEATURES = args.num_output_features
 
 
 def graph_data_splitter(_input):
@@ -68,7 +68,7 @@ def graph_data_splitter(_input):
 
     node_feature = NUM_NODES * NUM_NODES_FEATURES
     split_indices.append(node_feature)
-
+   
     node_tensor = NUM_EDGES * NUM_NODES_FEATURES
     split_indices.append(node_tensor)
 
@@ -80,29 +80,31 @@ def graph_data_splitter(_input):
 
     target = 1
     split_indices.append(target)
-
-    split_indices = \
-        [split_indices[i] + split_indices[i - 1]
-            for i in range(len(split_indices))]
-
-    graph_input = lbann.slice(_input, axis=0,
+    
+    for i in range(1, len(split_indices)):
+        split_indices[i] = split_indices[i] + split_indices[i-1]
+    graph_input = lbann.Slice(_input, axis=0,
                               slice_points=str_list(split_indices))
     graph_data_id = [lbann.Identity(graph_input) for x in range(5)]
 
     node_feature_dims = str_list([NUM_NODES, NUM_NODES_FEATURES])
-    node_tensor_dims = str_list([NUM_EDGES, NUM_NODES_FEATURES])
+    node_tensor_dims = str_list([NUM_EDGES, 1, NUM_NODES_FEATURES])
     edge_feature_dims = str_list([NUM_EDGES, NUM_EDGE_FEATURES])
-    edge_indices_dims = str_list([NUM_EDGES, 1])
+    edge_indices_dims = str_list([NUM_NODES, 1, NUM_NODES])
     target_dims = str_list([1])
 
     node_feature_mat = lbann.Reshape(graph_data_id[0],
-                                     dims=node_feature_dims)
+                                     dims=node_feature_dims,
+                                     name="Node_ft_matrix")
     node_tensor_mat = lbann.Reshape(graph_data_id[1],
-                                    dims=node_tensor_dims)
+                                    dims=node_tensor_dims,
+                                    name="Node_ft_tensor")
     edge_feature_mat = lbann.Reshape(graph_data_id[2],
-                                     dims=edge_feature_dims)
+                                     dims=edge_feature_dims,
+                                     name="Edge_ft_tensor")
     adjacency_tensor = lbann.Reshape(graph_data_id[3],
-                                     dims=edge_indices_dims)
+                                     dims=edge_indices_dims,
+                                     name="Adjacency_tensor")
     target = lbann.Reshape(graph_data_id[4],
                            dims=target_dims)
     return \
@@ -110,9 +112,10 @@ def graph_data_splitter(_input):
 
 
 def reduction(graph_feature_matrix, channels):
-    vector_size = str_list([1, NUM_NODES], name='Sum_Vector')
+    vector_size = str_list([1, NUM_NODES])
     reduction_vector = lbann.Constant(value=1,
-                                      num_neurons=vector_size)
+                                      num_neurons=vector_size,
+                                      name='Sum_Vector')
     reduced_features = lbann.MatMul(reduction_vector, graph_feature_matrix,
                                     name='Node_Feature_Reduction')
     reduced_features = lbann.Reshape(reduced_features,
@@ -129,13 +132,13 @@ def NNConvLayer(node_features_mat,
 
     FC = ChannelwiseFullyConnectedModule
     sequential_nn = \
-        [FC(128),
+        [FC(128, name="NN_SQ_1", bias=False),
          lbann.Relu,
-         FC(64),
+         FC(64, name="NN_SQ_2"),
          lbann.Relu,
-         FC(32),
+         FC(32, name="NN_SQ_3"),
          lbann.Relu,
-         FC(out_channel),
+         FC(out_channel*in_channel),
          lbann.Relu]
 
     nn_conv = DenseNNConv(sequential_nn,
@@ -152,18 +155,19 @@ def NNConvLayer(node_features_mat,
 
 def make_model():
     in_channel = NUM_NODES_FEATURES
-    out_channel = NUM_OUT_FEATURES
+    out_channel = NUM_OUT_FEATURES 
     output_dimension = 1
 
     _input = lbann.Input(target_mode='N/A')
-    node_feature_mat, node_feature_tensor, edge_features_tensor, adjacency_tensor, target = \
+    node_feature_mat, node_feature_tensor, edge_feature_tensor, adjacency_tensor, target = \
         graph_data_splitter(_input)
     node_fts = NNConvLayer(node_feature_mat,
-                           edge_features_tensor,
                            node_feature_tensor,
+                           edge_feature_tensor,
                            adjacency_tensor,
                            in_channel,
                            out_channel)
+    
     graph_embedding = reduction(node_fts, out_channel)
 
     x = lbann.FullyConnected(graph_embedding,
@@ -194,9 +198,11 @@ optimizer = lbann.SGD(learn_rate=1e-3)
 data_reader = data.Synthetic.make_data_reader("Synthetic_Dense_Edge")
 trainer = lbann.Trainer(mini_batch_size=MINI_BATCH_SIZE)
 
+
 lbann.contrib.launcher.run(trainer,
                            model,
                            data_reader,
                            optimizer,
                            job_name=JOB_NAME,
                            **kwargs)
+
