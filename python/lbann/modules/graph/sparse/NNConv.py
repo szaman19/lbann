@@ -14,6 +14,7 @@ class NNConv(Module):
                  sequential_nn,
                  num_nodes,
                  num_edges,
+                 input_channels,
                  output_channels,
                  activation=lbann.Relu,
                  name=None):
@@ -48,6 +49,7 @@ class NNConv(Module):
                      else 'NNConv_{}'.format(NNConv.global_count))
 
         self.output_channels = output_channels
+        self.input_channels = input_channels
 
         self.num_nodes = num_nodes
         self.num_edges = num_edges
