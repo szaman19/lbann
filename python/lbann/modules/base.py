@@ -115,7 +115,7 @@ class FullyConnectedModule(Module):
     def forward(self, x):
         self.instance += 1
         name = '{0}_instance{1}'.format(self.name, self.instance)
-        y = lbann.FullyConnected(x,Up
+        y = lbann.FullyConnected(x,
                                  weights=self.weights,
                                  name=(name+'_fc' if self.activation else name),
                                  data_layout=self.data_layout,

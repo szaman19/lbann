@@ -42,7 +42,7 @@ parser.add_argument(
     help='number of edge features (deafult: 1)', metavar='NUM')
 
 parser.add_argument(
-    '--num-output-features', action='store', default=16, type=int,
+    '--num-out-features', action='store', default=16, type=int,
     help='number of node features for NNConv (deafult: 16)', metavar='NUM')
 
 parser.add_argument(
@@ -58,7 +58,7 @@ NUM_EPOCHS = args.num_epochs
 JOB_NAME = args.job_name
 NUM_NODES = args.num_nodes
 NUM_EDGES = args.num_edges
-NUM_NODES_FEATURES = args.num_nodes_features
+NUM_NODES_FEATURES = args.num_node_features
 NUM_EDGE_FEATURES = args.num_edge_features
 NUM_OUT_FEATURES = args.num_out_features
 
@@ -84,12 +84,13 @@ def graph_data_splitter(_input):
 
     target = 1
     split_indices.append(target)
+    
+    for i in range(1, len(split_indices)):
+        split_indices[i] = split_indices[i] + split_indices[i-1]
+        
+    print(split_indices)
 
-    split_indices = \
-        [split_indices[i]+split_indices[i-1]
-            for i in range(len(split_indices))]
-
-    graph_input = lbann.slice(_input, axis=0,
+    graph_input = lbann.Slice(_input, axis=0,
                               slice_points=str_list(split_indices))
     graph_data_id = [lbann.Identity(graph_input) for x in range(5)]
 
@@ -114,9 +115,10 @@ def graph_data_splitter(_input):
 
 
 def reduction(graph_feature_matrix, channels):
-    vector_size = str_list([1, NUM_NODES], name='Sum_Vector')
+    vector_size = str_list([1, NUM_NODES])
     reduction_vector = lbann.Constant(value=1,
-                                      num_neurons=vector_size)
+                                      num_neurons=vector_size,
+                                      name='Sum_Vector')
     reduced_features = lbann.MatMul(reduction_vector, graph_feature_matrix,
                                     name='Node_Feature_Reduction')
     reduced_features = lbann.Reshape(reduced_features,
@@ -198,9 +200,11 @@ optimizer = lbann.SGD(learn_rate=1e-3)
 data_reader = data.Synthetic.make_data_reader("Synthetic_Scatter_Edge")
 trainer = lbann.Trainer(mini_batch_size=MINI_BATCH_SIZE)
 
+
 lbann.contrib.launcher.run(trainer,
                            model,
                            data_reader,
                            optimizer,
                            job_name=JOB_NAME,
                            **kwargs)
+
