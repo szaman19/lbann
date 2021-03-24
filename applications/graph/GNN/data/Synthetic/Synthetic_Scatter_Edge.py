@@ -1,6 +1,8 @@
 import numpy as np
 import pickle
 import os.path as osp
+import argparse
+import tqdm
 
 
 class Synthetic_Scatter_Edge(object):
@@ -29,13 +31,11 @@ class Synthetic_Scatter_Edge(object):
                 print("Using cached data")
             else:
 
-                _file_string = "synth_scatter_graphs_{}_{}_{}_{}_{}.p".format(num_samples,
+                _file_string = "/usr/workspace/wsa/zaman2/synth_scatter_graphs_{}_{}_{}_{}_{}.p".format(num_samples,
                                                                               num_nodes,
                                                                               max_edges,
                                                                               node_features,
                                                                               edge_features)
-                data_dir = osp.dirname(osp.realpath(__file__))
-                _file_string = osp.join(data_dir, _file_string)
                 try:
                     with open(_file_string, 'rb') as f:
                         self.dataset = pickle.load(f)
@@ -59,7 +59,7 @@ class Synthetic_Scatter_Edge(object):
         self.dataset = [(node_features[i], neighbor_fts[i], edge_indices[i], edge_fts[i], targets[i]) for
                         i in range(self.num_samples)]
         _file_string = \
-            "synth_scatter_graphs_{}_{}_{}_{}_{}.p".format(self.num_samples,
+            "/usr/workspace/wsa/zaman2/synth_scatter_graphs_{}_{}_{}_{}_{}.p".format(self.num_samples,
                                                            self.num_nodes,
                                                            self.max_edges,
                                                            self.node_features,
@@ -75,7 +75,7 @@ class Synthetic_Scatter_Edge(object):
         neighbor_fts = []
         edge_fts = []
 
-        for i in range(self.num_samples):
+        for i in tqdm.tqdm(range(self.num_samples)):
             node_index = []
 
             graph_edges = 0
@@ -85,7 +85,7 @@ class Synthetic_Scatter_Edge(object):
                 nodes_choices = list(range(self.num_nodes))
                 nodes_choices.remove(n)  # no self loops
 
-                num_neighbors = np.random.choice(self.num_nodes - 1)
+                num_neighbors = np.random.choice(int(self.num_nodes / 7 ))
 
                 node_adj = np.unique(np.random.choice(nodes_choices,
                                                       num_neighbors))
@@ -132,10 +132,11 @@ class Synthetic_Scatter_Edge(object):
 
 
 number_samples = 10000
-number_nodes = 10
+number_nodes = 200
 number_node_features = 10
 number_edge_features = 1
-max_edges = 53
+max_edges = 16656
+
 
 dataset = Synthetic_Scatter_Edge(number_samples,
                                  number_nodes,
@@ -167,13 +168,23 @@ def sample_dims_func():
     edge_features_size = dataset.max_edges * number_edge_features
     return (node_feature_size + neighbor_features_size + edge_indices_size + edge_features_size + 1,)
 
-
+'''
 if __name__ == '__main__':
+
+  number_samples = 10000
+  number_nodes = NUM_NODES
+  number_node_features = 10
+  number_edge_features = 1
+  max_edges = 4259
+
+
+  dataset = Synthetic_Scatter_Edge(number_samples,
+                                 number_nodes,
+                                 number_node_features,
+                                 number_edge_features,
+                                 max_edges=max_edges)
   print(num_samples_func())
   print(sample_dims_func())
   print(get_sample_func(0).shape)
   print(dataset.max_edges)
-
-  for i in range(num_samples_func()):
-    print(get_sample_func(i).shape)
-    
+'''

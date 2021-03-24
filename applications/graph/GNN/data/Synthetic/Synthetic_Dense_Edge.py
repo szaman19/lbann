@@ -36,7 +36,7 @@ class Synthetic_Dense_Edge(object):
       if (cached_file):
         self.dataset = np.load(cached_file)
       else:
-        file_string = "synth_dense_graphs_{}_{}_{}_{}.p".format(num_samples,
+        file_string = "/p/vast1/zaman2/synth_dense_graphs_{}_{}_{}_{}.p".format(num_samples,
                                                                    num_nodes,
                                                                    node_features,
                                                                    edge_features)
@@ -51,12 +51,12 @@ class Synthetic_Dense_Edge(object):
 
   def generate_data(self):
     self.dataset = np.random.random((self.num_samples, self.sample_dim))
-    _file_string = "synth_dense_graphs_{}_{}_{}_{}.p".format(self.num_samples,
+    _file_string = "/p/vast1/zaman2/synth_dense_graphs_{}_{}_{}_{}.p".format(self.num_samples,
                                                                   self.num_nodes,
                                                                   self.node_features,
                                                                   self.edge_features)
     with open(_file_string, 'wb') as f:
-        pickle.dump(self.dataset, f)
+        pickle.dump(self.dataset, f, protocol=pickle.HIGHEST_PROTOCOL)
 
 
   def get_sample(self, i):
@@ -64,7 +64,7 @@ class Synthetic_Dense_Edge(object):
 
 
 number_samples = 10000
-number_nodes = 10
+number_nodes = 100
 number_node_features = 10
 number_edge_features = 1
 
