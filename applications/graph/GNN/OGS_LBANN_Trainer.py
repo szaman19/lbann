@@ -5,6 +5,7 @@ import lbann.contrib.args
 import argparse
 import os 
 import configparser
+import math
 
 import data.LSC_PPQM4M
 from lbann.util import str_list
@@ -36,20 +37,30 @@ parser.add_argument(
     help='number of nodes (deafult: 51)', metavar='NUM')
 
 parser.add_argument(
-    '--num-node-features', action='store', default=100, type=int,
-    help='number of node features (deafult: 100)', metavar='NUM')
+    '--num-node-features', action='store', default=9, type=int,
+    help='number of node features (deafult: 9)', metavar='NUM')
 
 parser.add_argument(
-    '--num-edge-features', action='store', default=16, type=int,
-    help='number of edge features (deafult: 16)', metavar='NUM')
+    '--num-edge-features', action='store', default=3, type=int,
+    help='number of edge features (deafult: 3)', metavar='NUM')
 
 parser.add_argument(
-    '--num-out-features', action='store', default=16, type=int,
-    help='number of node features for NNConv (deafult: 16)', metavar='NUM')
+    '--num-out-features', action='store', default=32, type=int,
+    help='number of node features for NNConv (deafult: 32)', metavar='NUM')
 
 parser.add_argument(
-    '--num-samples', action='store', default=3045360, type=int,
-    help='number of Samples (deafult: 3045360)', metavar='NUM')
+    '--num-samples', action='store', default=10000, type=int,
+    help='number of Samples (deafult: 10000)', metavar='NUM')
+
+
+parser.add_argument(
+    '--node-embeddings', action='store', default=100, type=int,
+    help='dimensionality of node feature embedding (deafult: 100)', metavar='NUM')
+
+
+parser.add_argument(
+    '--edge-embeddings', action='store', default=100, type=int,
+    help='dimensionality of edge feature embedding (deafult: 100)', metavar='NUM')
 
 parser.add_argument(
     '--job-name', action='store', default="NN_Conv", type=str,
@@ -64,10 +75,12 @@ NUM_EPOCHS = args.num_epochs
 JOB_NAME = args.job_name
 NUM_NODES = 51
 NUM_EDGES = 118
-NUM_NODES_FEATURES = 100
-NUM_EDGE_FEATURES = 16
+NUM_NODES_FEATURES = 9
+NUM_EDGE_FEATURES = 3
 NUM_OUT_FEATURES = args.num_out_features
 NUM_SAMPLES = args.num_samples
+EMBEDDING_DIM = args.node_embeddings
+EDGE_EMBEDDING_DIM = args.edge_embeddings
 
 #----------------------------------------
 
@@ -92,6 +105,68 @@ with open(_file_name, 'w') as configfile:
 
 os.environ['LBANN_LSC_CONFIG_FILE'] = _file_name
 
+def _xavier_uniform_init(fan_in, fan_out):
+    a = math.sqrt(6 / (fan_in + fan_out))
+    return lbann.UniformInitializer(min=-a, max=a)
+                              
+def BondEncoder(edge_feature_columns):
+    # Courtesy of OGB
+    bond_feature_dims = [5, 6, 2]
+    _fan_in = bond_feature_dims[0]
+    _fan_out = EDGE_EMBEDDING_DIM
+    _embedding_weights = lbann.Weights(initializer=_xavier_uniform_init(_fan_in, _fan_out),
+                                       name="bond_encoder_weights_{}".format(0))
+
+    temp = lbann.Embedding(edge_feature_columns[0],
+                           num_embeddings=bond_feature_dims[0],
+                           embedding_dim=EDGE_EMBEDDING_DIM,
+                           weights=_embedding_weights,
+                           name="Bond_Embedding_0")
+    
+
+    for i in range(1,3):
+        _fan_in = bond_feature_dims[i]
+        _fan_out = EDGE_EMBEDDING_DIM
+        _embedding_weights = lbann.Weights(initializer=_xavier_uniform_init(_fan_in, _fan_out),
+                                           name="bond_encoder_weights_{}".format(i))
+        _temp2 = lbann.Embedding(edge_feature_columns[i],
+                                 num_embeddings=bond_feature_dims[i],
+                                 embedding_dim=EDGE_EMBEDDING_DIM,
+                                 weights=_embedding_weights, 
+                                 name="Bond_Embedding_{}".format(i))
+        temp = lbann.Sum(temp, _temp2)
+    return temp
+
+    
+def AtomEncoder(node_feature_columns):
+    # Courtesy of OGB
+    atom_feature_dims = [119, 4, 12, 12, 10, 6, 6, 2, 2]
+
+    _fan_in = atom_feature_dims[0]
+    _fan_out = EDGE_EMBEDDING_DIM
+
+    _embedding_weights = lbann.Weights(initializer=_xavier_uniform_init(_fan_in, _fan_out),
+                                       name="atom_encoder_weights_{}".format(0))
+
+    temp = lbann.Embedding(node_feature_columns[0],
+                           num_embeddings=atom_feature_dims[0],
+                           embedding_dim=EMBEDDING_DIM,
+                           weights=_embedding_weights,
+                           name="Atom_Embedding_0")
+    for i in range(1,9):
+        _fan_in = atom_feature_dims[i]
+        _fan_out = EDGE_EMBEDDING_DIM
+        _embedding_weights = lbann.Weights(initializer=_xavier_uniform_init(_fan_in, _fan_out),
+                                           name="atom_encoder_weights_{}".format(i))
+        _temp2 = lbann.Embedding(node_feature_columns[i],
+                                 num_embeddings=atom_feature_dims[i],
+                                 embedding_dim=EMBEDDING_DIM,
+                                 weights=_embedding_weights,
+                                 name="Atom_Embedding_{}".format(i))
+        temp = lbann.Sum(temp, _temp2)
+    return temp    
+
+
 def graph_data_splitter(_input):
 
     split_indices = []
@@ -99,11 +174,13 @@ def graph_data_splitter(_input):
     start_index = 0
     split_indices.append(start_index)
 
-    node_feature = NUM_NODES * NUM_NODES_FEATURES
-    split_indices.append(node_feature)
+    node_feature = [NUM_NODES for i in range(1, NUM_NODES_FEATURES+1)]
 
-    edge_features = NUM_EDGES * NUM_EDGE_FEATURES
-    split_indices.append(edge_features)
+    split_indices.extend(node_feature)
+
+    edge_features = [NUM_EDGES for  i in range(1, NUM_EDGE_FEATURES+1)]
+
+    split_indices.extend(edge_features)
     
     edge_indices_sources = NUM_EDGES
     split_indices.append(edge_indices_sources)
@@ -120,53 +197,71 @@ def graph_data_splitter(_input):
 
     graph_input = lbann.Slice(_input, axis=0,
                               slice_points=str_list(split_indices))
-    graph_data_id = [lbann.Identity(graph_input) for x in range(5)]
 
-    node_feature_dims = str_list([NUM_NODES, NUM_NODES_FEATURES])
-    
-    edge_feature_dims = str_list([NUM_EDGES, NUM_EDGE_FEATURES])
-    edge_indices_dims = str_list([NUM_EDGES])
-    target_dims = str_list([1])
+    node_feature_columns = [lbann.Reshape(lbann.Identity(graph_input),
+                                          dims=str_list([NUM_NODES]),
+                                          name="node_ft_{}_col".format(x)) for x in range(9)]
 
-    node_feature_mat = lbann.Reshape(graph_data_id[0],
-                                     dims=node_feature_dims,
-                                     name="Input_node_fts_reshape")
+    edge_feature_columns = [lbann.Reshape(lbann.Identity(graph_input),
+                                          dims=str_list([NUM_EDGES]),
+                                          name="edge_ft_{}_col".format(x)) for x in range(3)]
     
-    edge_feature_mat = lbann.Reshape(graph_data_id[1],
-                                     dims=edge_feature_dims,
-                                     name="Input_edge_fts_reshape")
+    source_nodes = lbann.Reshape(lbann.Identity(graph_input),
+                                 dims=str_list([NUM_EDGES, 1]),
+                                 name="source_nodes")
+    target_nodes = lbann.Reshape(lbann.Identity(graph_input),
+                                 dims=str_list([NUM_EDGES, 1]),
+                                 name="target_nodes")
+
+    label = lbann.Reshape(lbann.Identity(graph_input),
+                          dims=str_list([1]),
+                          name="Graph_Label")
+
+
+    offset = lbann.Constant(value=EMBEDDING_DIM,
+                            num_neurons=str_list([NUM_EDGES, 1]),
+                            name="NODE_FEATURE_OFFSET")    
     
-    edge_indices_targets = lbann.Reshape(graph_data_id[2],
-                                 dims=edge_indices_dims,
-                                     name="Input_target_indices_reshape")
-    edge_indices_sources = lbann.Reshape(graph_data_id[3],
-                                 dims=edge_indices_dims,
-                                  name="Input_source_indices_reshaped")
-    
-    target = lbann.Reshape(graph_data_id[4],
-                           dims=target_dims)
-    
-    
+    offset_target_indices = lbann.Multiply(target_nodes, offset)
+
+
     modified_edge_target_indices = []
 
-    for i in range(NUM_NODES_FEATURES):
+    modified_edge_target_indices.append(offset_target_indices)
+
+    for i in range(1, EMBEDDING_DIM):
         offset = lbann.Constant(value=i,
-                                num_neurons=str(NUM_EDGES),
+                                num_neurons=str_list([NUM_EDGES, 1]),
                                 name="edge_val_target_col_{}".format(i))
 
-        _updated_edge_ind = lbann.Sum(edge_indices_targets, offset)
+        _updated_edge_ind = lbann.Sum(offset_target_indices, offset)
         modified_edge_target_indices.append(_updated_edge_ind)
     
-    modified_edge_indices = lbann.Concatenation(modified_edge_target_indices)
-    neighbor_feature_dims = str_list([NUM_EDGES, 1, NUM_NODES_FEATURES])
+    modified_edge_target_indices = [lbann.Reshape(x , dims=str_list([NUM_EDGES, 1])) 
+                                    for x in modified_edge_target_indices]
     
-    neighbor_features = lbann.Gather(graph_data_id[0], modified_edge_indices)
+    modified_edge_indices = lbann.Reshape(lbann.Concatenation(modified_edge_target_indices, axis=1),
+                                         dims=str_list([NUM_EDGES*EMBEDDING_DIM]))
+
+
+
+    neighbor_feature_dims = str_list([NUM_EDGES, 1, EMBEDDING_DIM])
+    
+    embedded_node_features = AtomEncoder(node_feature_columns) 
+    
+    embedded_edge_features = BondEncoder(edge_feature_columns)
+
+    neighbor_features = lbann.Reshape(embedded_node_features,
+                                      dims=str_list([NUM_NODES * EMBEDDING_DIM]),
+                                      name='Flattened_Neighbor_features')
+    
+    neighbor_features = lbann.Gather(neighbor_features, modified_edge_indices)
 
     neighbor_feature_mat = lbann.Reshape(neighbor_features,
                                          dims=neighbor_feature_dims)
 
     return \
-        node_feature_mat, neighbor_feature_mat, edge_feature_mat, edge_indices_sources, target
+        embedded_node_features, neighbor_feature_mat, embedded_edge_features, source_nodes, label
 
 
 def reduction(graph_feature_matrix, channels):
@@ -189,15 +284,23 @@ def NNConvLayer(node_features,
                 out_channel):
 
     FC = ChannelwiseFullyConnectedModule
+
+    k_1 = math.sqrt(1/100)
+    k_2 = math.sqrt(1/1024)
+    k_3 = math.sqrt(1/256)
+    nn_sq_1_weight = lbann.Weights(initializer=lbann.UniformInitializer(min=-k_1, max=k_1),
+                                   name="gnn_weights_{}".format(0))
+    nn_sq_2_weight = lbann.Weights(initializer=lbann.UniformInitializer(min=-k_2, max=k_2),
+                                   name="gnn_weights_weights_{}".format(1))
+    nn_sq_3_weight = lbann.Weights(initializer=lbann.UniformInitializer(min=-k_3, max=k_3),
+                                   name="gnn_weights_weights_{}".format(2))
+
     sequential_nn = \
-        [FC(1024, name="NN_SQ_1"),
+        [FC(1024, weights=[nn_sq_1_weight], name="NN_SQ_1"),
          lbann.Relu,
-         FC(512, name="NN_SQ_2"),
+         FC(256, weights=[nn_sq_2_weight], name="NN_SQ_2"),
          lbann.Relu,
-         FC(256, name="NN_SQ_3"),
-         lbann.Relu,
-         FC(out_channel * in_channel),
-         lbann.Relu]
+         FC(out_channel * in_channel, weights=[nn_sq_3_weight], name="NN_SQ_3")]
 
     nn_conv = NNConv(sequential_nn,
                      NUM_NODES,
@@ -212,22 +315,35 @@ def NNConvLayer(node_features,
 
 
 def make_model():
-    in_channel = NUM_NODES_FEATURES
+    in_channel = EMBEDDING_DIM
     out_channel = NUM_OUT_FEATURES
     output_dimension = 1
 
     _input = lbann.Input(target_mode='N/A')
     node_feature_mat, neighbor_feature_mat, edge_feature_mat, edge_indices, target = \
         graph_data_splitter(_input)
+    
+    offset = lbann.Constant(value=out_channel,
+                            num_neurons=str_list([NUM_EDGES, 1]),
+                            name="GATHER_FEATURE_OFFSET")    
+    
+    offset_target_indices = lbann.Multiply(edge_indices, offset)
+
     modified_edge_indices = []
-    for i in range(out_channel):
+    modified_edge_indices.append(offset_target_indices)
+    for i in range(1, out_channel):
         offset = lbann.Constant(value=i,
-                                num_neurons=str(NUM_EDGES),
+                                num_neurons=str_list([NUM_EDGES, 1]),
                                 name="edge_val_col_{}".format(i))
 
-        _updated_edge_ind = lbann.Sum(edge_indices, offset)
+        _updated_edge_ind = lbann.Sum(offset_target_indices, offset)
         modified_edge_indices.append(_updated_edge_ind)
-    modified_edge_indices = lbann.Concatenation(modified_edge_indices)
+    modified_edge_indices = [lbann.Reshape(x, dims=str_list([NUM_EDGES, 1]))
+                             for x in modified_edge_indices]
+
+    modified_edge_indices = lbann.Reshape(lbann.Concatenation(modified_edge_indices, axis=1),
+                                         dims=str_list([NUM_EDGES * out_channel]),
+                                         name="MODIFIED_EDGE_TARGET_INDICES")
     node_fts = NNConvLayer(node_feature_mat,
                            neighbor_feature_mat,
                            edge_feature_mat,
@@ -243,6 +359,8 @@ def make_model():
     x = lbann.FullyConnected(x,
                              num_neurons=output_dimension,
                              name="output")
+    # x = lbann.Clamp(x, min=0, max=50, name="MODEL_OUTPUT")
+    
     loss = lbann.MeanSquaredError(x, target)
 
     layers = lbann.traverse_layer_graph(_input)
@@ -251,7 +369,12 @@ def make_model():
                                           print_global_stat_only=False)
     gpu_usage = lbann.CallbackGPUMemoryUsage()
     timer = lbann.CallbackTimer()
-    callbacks = [print_model, training_output, gpu_usage, timer]
+    # weights_dump = lbann.CallbackDumpWeights(directory="/g/g92/zaman2/lbann/applications/graph/GNN/updated",
+    #                                          format="text") 
+    output_dump = lbann.CallbackDumpOutputs(layers="output",
+                                            batch_interval=10,
+                                            directory="/g/g92/zaman2/lbann/applications/graph/GNN/updated")
+    callbacks = [print_model, training_output, gpu_usage, timer, output_dump]
     model = lbann.Model(NUM_EPOCHS,
                         layers=layers,
                         objective_function=loss,
@@ -260,8 +383,8 @@ def make_model():
 
 
 model = make_model()
-optimizer = lbann.SGD(learn_rate=1e-3)
-data_reader = data.LSC_PPQM4M.make_data_reader("LSC_DATA")
+optimizer = lbann.SGD(learn_rate=1e-6)
+data_reader = data.LSC_PPQM4M.make_data_reader("trial_data")
 trainer = lbann.Trainer(mini_batch_size=MINI_BATCH_SIZE)
 
 
