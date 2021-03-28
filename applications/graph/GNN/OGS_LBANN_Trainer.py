@@ -371,10 +371,10 @@ def make_model():
     timer = lbann.CallbackTimer()
     # weights_dump = lbann.CallbackDumpWeights(directory="/g/g92/zaman2/lbann/applications/graph/GNN/updated",
     #                                          format="text") 
-    output_dump = lbann.CallbackDumpOutputs(layers="output",
-                                            batch_interval=10,
-                                            directory="/g/g92/zaman2/lbann/applications/graph/GNN/updated")
-    callbacks = [print_model, training_output, gpu_usage, timer, output_dump]
+    # output_dump = lbann.CallbackDumpOutputs(layers="output",
+    #                                         batch_interval=10,
+    #                                         directory="/g/g92/zaman2/lbann/applications/graph/GNN/updated")
+    callbacks = [print_model, training_output, gpu_usage, timer]
     model = lbann.Model(NUM_EPOCHS,
                         layers=layers,
                         objective_function=loss,
