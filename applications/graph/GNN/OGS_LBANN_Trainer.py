@@ -49,8 +49,8 @@ parser.add_argument(
     help='number of node features for NNConv (deafult: 32)', metavar='NUM')
 
 parser.add_argument(
-    '--num-samples', action='store', default=10000, type=int,
-    help='number of Samples (deafult: 10000)', metavar='NUM')
+    '--num-samples', action='store', default=3045360, type=int,
+    help='number of Samples (deafult: 3045360)', metavar='NUM')
 
 
 parser.add_argument(
@@ -388,7 +388,7 @@ def make_model():
 
 model = make_model()
 optimizer = lbann.SGD(learn_rate=1e-6)
-data_reader = data.LSC_PPQM4M.make_data_reader("trial_data")
+data_reader = data.LSC_PPQM4M.make_data_reader("LSC_FULL_DATA")
 trainer = lbann.Trainer(mini_batch_size=MINI_BATCH_SIZE)
 
 
