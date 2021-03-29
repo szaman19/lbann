@@ -354,10 +354,10 @@ def make_model():
                            modified_edge_indices,
                            in_channel,
                            out_channel)
-    graph_embedding = reduction(node_fts, out_channel)
+    # graph_embedding = reduction(node_fts, out_channel)
 
-    x = lbann.FullyConnected(graph_embedding,
-                             num_neurons=8,
+    x = lbann.FullyConnected(node_fts,
+                             num_neurons=512,
                              name='hidden_layer_1')
     x = lbann.Relu(x, name='hidden_layer_1_activation')
     x = lbann.FullyConnected(x,
@@ -365,7 +365,7 @@ def make_model():
                              name="output")
     # x = lbann.Clamp(x, min=0, max=50, name="MODEL_OUTPUT")
     
-    loss = lbann.MeanSquaredError(x, target)
+    loss = lbann.MeanAbsoluteError(x, target)
 
     layers = lbann.traverse_layer_graph(_input)
     print_model = lbann.CallbackPrintModelDescription()
@@ -378,7 +378,7 @@ def make_model():
     # output_dump = lbann.CallbackDumpOutputs(layers="output",
     #                                         batch_interval=10,
     #                                         directory="/g/g92/zaman2/lbann/applications/graph/GNN/updated")
-    callbacks = [print_model, training_output, gpu_usage, timer]
+    callbacks = [training_output, gpu_usage, timer]
     model = lbann.Model(NUM_EPOCHS,
                         layers=layers,
                         objective_function=loss,
@@ -387,7 +387,7 @@ def make_model():
 
 
 model = make_model()
-optimizer = lbann.SGD(learn_rate=1e-6)
+optimizer = lbann.SGD(learn_rate=3e-4)
 data_reader = data.LSC_PPQM4M.make_data_reader("LSC_FULL_DATA")
 trainer = lbann.Trainer(mini_batch_size=MINI_BATCH_SIZE)
 
