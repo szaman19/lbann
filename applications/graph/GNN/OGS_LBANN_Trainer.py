@@ -268,6 +268,7 @@ def graph_data_splitter(_input):
         embedded_node_features, neighbor_feature_mat, embedded_edge_features, source_nodes, label
 
 
+
 def reduction(graph_feature_matrix, channels):
     vector_size = str_list([1, NUM_NODES])
     reduction_vector = lbann.Constant(value=1,
@@ -285,11 +286,12 @@ def NNConvLayer(node_features,
                 edge_features,
                 edge_index,
                 in_channel,
-                out_channel):
+                out_channel,
+                layer_name=0):
 
     FC = ChannelwiseFullyConnectedModule
 
-    k_1 = math.sqrt(1/100)
+    k_1 = math.sqrt(1/in_channel)
     k_2 = math.sqrt(1/1024)
     k_3 = math.sqrt(1/256)
     nn_sq_1_weight = lbann.Weights(initializer=lbann.UniformInitializer(min=-k_1, max=k_1),
@@ -311,6 +313,7 @@ def NNConvLayer(node_features,
                      NUM_EDGES,
                      in_channel,
                      out_channel)
+
     out = nn_conv(node_features,
                   neighbor_features,
                   edge_features,
@@ -348,18 +351,25 @@ def make_model():
     modified_edge_indices = lbann.Reshape(lbann.Concatenation(modified_edge_indices, axis=1),
                                          dims=str_list([NUM_EDGES * out_channel]),
                                          name="MODIFIED_EDGE_TARGET_INDICES")
-    node_fts = NNConvLayer(node_feature_mat,
+    x = NNConvLayer(node_feature_mat,
                            neighbor_feature_mat,
                            edge_feature_mat,
                            modified_edge_indices,
                            in_channel,
                            out_channel)
+
     # graph_embedding = reduction(node_fts, out_channel)
 
-    x = lbann.FullyConnected(node_fts,
-                             num_neurons=512,
-                             name='hidden_layer_1')
-    x = lbann.Relu(x, name='hidden_layer_1_activation')
+    # x = lbann.FullyConnected(node_fts,
+    #                          num_neurons=256,
+    #                          name='hidden_layer_1')
+    # x = lbann.Relu(x, name='hidden_layer_1_activation')
+    
+    for i, num_neurons in enumerate([256, 128, 32, 8], 1):
+        x = lbann.FullyConnected(x,
+                                 num_neurons=num_neurons,
+                                 name="hidden_layer_{}".format(i))
+        x = lbann.Relu(x, name='hidden_layer_{}_activation'.format(i))
     x = lbann.FullyConnected(x,
                              num_neurons=output_dimension,
                              name="output")
@@ -387,7 +397,7 @@ def make_model():
 
 
 model = make_model()
-optimizer = lbann.SGD(learn_rate=3e-4)
+optimizer = lbann.SGD(learn_rate=1e-4)
 data_reader = data.LSC_PPQM4M.make_data_reader("LSC_FULL_DATA")
 trainer = lbann.Trainer(mini_batch_size=MINI_BATCH_SIZE)
 
