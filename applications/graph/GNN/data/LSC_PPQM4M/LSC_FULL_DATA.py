@@ -1,12 +1,12 @@
 import numpy as np 
 
-dataset = np.memmap("/p/vast1/zaman2/LBANN_Data.bin",
+dataset = np.array(np.memmap("/p/vast1/zaman2/LBANN_Data.bin",
 				    dtype='float32',
 				    mode='r',
-				    shape=(3045360,1101))
+				    shape=(3045360,1101)))
 
 def get_sample_func(index):
-	return np.array(dataset[index])
+	return dataset[index]
 
 def num_samples_func():
 	return 3045360

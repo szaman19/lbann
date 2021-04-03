@@ -21,11 +21,11 @@ lbann.contrib.args.add_scheduler_arguments(parser)
 lbann.contrib.args.add_optimizer_arguments(parser)
 
 parser.add_argument(
-    '--num-epochs', action='store', default=100, type=int,
+    '--num-epochs', action='store', default=3, type=int,
     help='number of epochs (deafult: 100)', metavar='NUM')
 
 parser.add_argument(
-    '--mini-batch-size', action='store', default=32, type=int,
+    '--mini-batch-size', action='store', default=2048, type=int,
     help="mini-batch size (default: 32)", metavar='NUM')
 
 parser.add_argument(
@@ -54,12 +54,12 @@ parser.add_argument(
 
 
 parser.add_argument(
-    '--node-embeddings', action='store', default=100, type=int,
+    '--node-embeddings', action='store', default=64, type=int,
     help='dimensionality of node feature embedding (deafult: 100)', metavar='NUM')
 
 
 parser.add_argument(
-    '--edge-embeddings', action='store', default=100, type=int,
+    '--edge-embeddings', action='store', default=16, type=int,
     help='dimensionality of edge feature embedding (deafult: 100)', metavar='NUM')
 
 parser.add_argument(
