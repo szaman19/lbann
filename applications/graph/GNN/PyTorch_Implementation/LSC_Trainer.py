@@ -9,11 +9,11 @@ class LSC_Trainer(nn.Module):
         super(LSC_Trainer, self).__init__()
         self.bond_encoder = BondEncoder(16)
         self.atom_encoder = AtomEncoder(64)
-        self._graph_nn= nn.Sequential(nn.Linear(16, 1024, bias=False),
+        self._graph_nn= nn.Sequential(nn.Linear(16, 64, bias=False),
                                       nn.ReLU(),
-                                      nn.Linear(1024, 256, bias=False),
+                                      nn.Linear(64, 32, bias=False),
                                       nn.ReLU(),
-                                      nn.Linear(256, 64*32, bias=False))
+                                      nn.Linear(32, 64*32, bias=False))
 
         self.graph_conv = NNConv(64, 32, self._graph_nn)
 

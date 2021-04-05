@@ -43,7 +43,7 @@ def main(BATCH_SIZE, dist=False, sync=True):
     time_stamp = time.strftime("%d-%m-%Y-%H-%M-%S", time.gmtime())
 
     if dist:
-        init_dist("/p/vast1/zaman2/randevous_files_"+time_stamp)
+        init_dist("/p/vast1/zaman2/randevous_files_"+str(BATCH_SIZE))
         rank = torch.distributed.get_rank()
 
     else:
@@ -72,6 +72,9 @@ def main(BATCH_SIZE, dist=False, sync=True):
                               batch_size=(BATCH_SIZE // world_size),
                               sampler=train_sampler,
                               pin_memory=True)
+    val_loader = DataLoader(val_dataset,
+                            batch_size=2048,
+                            pin_memory=True)
 
     if dist:
         device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
@@ -83,15 +86,14 @@ def main(BATCH_SIZE, dist=False, sync=True):
     if dist:
         model = torch.nn.parallel.DistributedDataParallel(model,
                                                           device_ids=[0],
-                                                          output_device=0,
-                                                          find_unused_parameters=True)
+                                                          output_device=0)
 
     optimizer = torch.optim.Adam(model.parameters(), lr=1e-4)
 
     criterion = torch.nn.MSELoss()
 
     if primary:
-        file_name = "MB_"+str(BATCH_SIZE) + "_" + world_size +".log"
+        file_name = "MB_"+str(BATCH_SIZE) + "_" + str(world_size) +".log"
 
         logger = open(file_name, 'w')
 
@@ -102,7 +104,11 @@ def main(BATCH_SIZE, dist=False, sync=True):
         epoch_loss = 0
         epoch_start_time = time.perf_counter()
         batch_times = AverageTracker()
-
+        
+        loss_tracker = AverageTracker()
+       
+        if (dist):
+            train_loader.sampler.set_epoch(epoch)
         for i, data in enumerate(train_loader):
 
             _time_start = time.perf_counter()
@@ -111,27 +117,59 @@ def main(BATCH_SIZE, dist=False, sync=True):
 
             pred = model(data)
             loss = criterion(y, pred.squeeze())
-            epoch_loss += loss.item()
+            loss_tracker.update(loss.item())
             optimizer.zero_grad()
             loss.backward()
+            optimizer.step()
 
+
+            #if dist and sync:
+                #torch.distributed.barrier()  # This ensures that Global Mini Batches are synced
+            
             if rank == 0:
                 batch_times.update(time.perf_counter() - _time_start)
-                # print("Mini Batch Times ", i,": \t", batch_times.mean(), flush=True)
-
-            if dist and sync:
-                torch.distributed.barrier()  # This ensures that Global Mini Batches are synced
-
+                print("Mini Batch Times ", i,": \t", batch_times.mean(), "LOSS: \t", loss_tracker.mean(), flush=True)
         if dist:
             torch.distributed.barrier()
 
-        if primary:
-            message = "Epoch {}: Total elapsed time {:.3f} \t Average Mini Batch Time {:.3f} \n"
-            epoch_time = time.perf_counter() - epoch_start_time
+            if primary:
+                message = "Epoch {}: Total elapsed time {:.3f} \t Average Mini Batch Time {:.3f} \n"
+                epoch_time = time.perf_counter() - epoch_start_time
 
-            logger.write(message.format(epoch, epoch_time, batch_times.mean()))
-            logger.flush()
-            print(message.format(epoch, epoch_time, batch_times.mean()), flush=True)
+                logger.write(message.format(epoch, epoch_time, batch_times.mean()))
+                logger.flush()
+                print(message.format(epoch, epoch_time, batch_times.mean()), flush=True)
+      
+        else:
+            if primary:
+                message = "Epoch {}: Total elapsed time {:.3f} \t Average Mini Batch Time {:.3f} \n"
+                epoch_time = time.perf_counter() - epoch_start_time
+
+                logger.write(message.format(epoch, epoch_time, batch_times.mean()))
+                logger.flush()
+                print(message.format(epoch, epoch_time, batch_times.mean()), flush=True)
+        
+        validation_time = time.perf_counter()
+        model.eval()
+        val_batch_times = AverageTracker()
+        for i, data in enumerate(val_loader):
+            _time_start = time.perf_counter()
+            data = data.to(device)
+            y = data.y
+            pred = model(data)
+            loss = criterion(y, pred.squeeze())
+            
+            val_batch_times.update(_time_start - time.perf_counter())
+        if dist:
+            torch.distributed.barrier()
+        
+        if primary:
+             message = "Epoch {} Validation : Total elapsed time {:.3f} \t Average Mini Batch Time {:.3f} \n"
+             epoch_time = time.perf_counter() - validation_time
+
+             print(message.format(epoch, epoch_time, val_batch_times.mean()), flush=True)
+
+        
     if dist:
         torch.distributed.barrier()
 

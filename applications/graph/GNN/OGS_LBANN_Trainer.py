@@ -292,8 +292,8 @@ def NNConvLayer(node_features,
     FC = ChannelwiseFullyConnectedModule
 
     k_1 = math.sqrt(1/in_channel)
-    k_2 = math.sqrt(1/1024)
-    k_3 = math.sqrt(1/256)
+    k_2 = math.sqrt(1/64)
+    k_3 = math.sqrt(1/32)
     nn_sq_1_weight = lbann.Weights(initializer=lbann.UniformInitializer(min=-k_1, max=k_1),
                                    name="gnn_weights_{}".format(0))
     nn_sq_2_weight = lbann.Weights(initializer=lbann.UniformInitializer(min=-k_2, max=k_2),
@@ -302,9 +302,9 @@ def NNConvLayer(node_features,
                                    name="gnn_weights_weights_{}".format(2))
 
     sequential_nn = \
-        [FC(1024, weights=[nn_sq_1_weight], name="NN_SQ_1"),
+        [FC(64, weights=[nn_sq_1_weight], name="NN_SQ_1"),
          lbann.Relu,
-         FC(256, weights=[nn_sq_2_weight], name="NN_SQ_2"),
+         FC(32, weights=[nn_sq_2_weight], name="NN_SQ_2"),
          lbann.Relu,
          FC(out_channel * in_channel, weights=[nn_sq_3_weight], name="NN_SQ_3")]
 
