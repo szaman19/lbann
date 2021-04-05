@@ -12,6 +12,7 @@ from lbann.util import str_list
 from lbann.modules.graph import NNConv
 from lbann.modules import ChannelwiseFullyConnectedModule
 
+import numpy as np
 
 desc = ("Training Edge-conditioned Graph Convolutional Model Using LBANN ")
 
@@ -167,6 +168,30 @@ def AtomEncoder(node_feature_columns):
     return temp    
 
 
+def _index_2d(index, dim1, dim2):
+    """Modified index layer such that it works with value layer with dimension (dim1, dim2) for use with 
+        gather/scatter layers"""    
+    
+    offset = lbann.Constant(value=dim2,
+                            num_neurons=str_list([dim1, 1]))    
+    
+    offset_target_indices = lbann.Multiply(index, offset)
+    
+    offset_values = np.tile(range(dim2), dim1)
+    
+    #print(offset_values)
+    offset_mat_vals = lbann.Weights(
+                        initializer=lbann.ValueInitializer(values=str_list(offset_values)),
+                        optimizer=lbann.NoOptimizer())
+    offset_mat = lbann.WeightsLayer(weights=offset_mat_vals, dims=str_list([dim1, dim2]))
+
+    
+    indices = lbann.Tessellate(offset_target_indices, dims=str_list([dim1, dim2]))
+
+    modified_edge_indices = lbann.Reshape(lbann.Sum(offset_mat, indices), dims=str_list([dim1*dim2]))  
+    
+    return modified_edge_indices
+
 def graph_data_splitter(_input):
 
     split_indices = []
@@ -227,11 +252,25 @@ def graph_data_splitter(_input):
                             name="NODE_FEATURE_OFFSET")    
     
     offset_target_indices = lbann.Multiply(target_nodes, offset)
+    
+    offset_values = np.tile(range(EMBEDDING_DIM), NUM_EDGES)
+    
+    offset_mat_vals = lbann.Weights(
+                    initializer=lbann.ValueInitializer(values=str_list(offset_values)),
+                    optimizer=lbann.NoOptimizer())
+    
+    offset_mat = lbann.WeightsLayer(weights=offset_mat_vals, dims=str_list([NUM_EDGES, EMBEDDING_DIM]), name="INDEX_OFFSET_MAP")
+    
+    indices = lbann.Tessellate(target_nodes, dims=str_list([NUM_EDGES, EMBEDDING_DIM]))
 
-
+    modified_edge_indices = lbann.Reshape(lbann.Sum(offset_mat, indices), dims=str_list([NUM_EDGES*EMBEDDING_DIM]))
+    
+    '''
+    index_embedding_mat = 
     modified_edge_target_indices = []
 
     modified_edge_target_indices.append(offset_target_indices)
+    
 
     for i in range(1, EMBEDDING_DIM):
         offset = lbann.Constant(value=i,
@@ -246,7 +285,7 @@ def graph_data_splitter(_input):
     
     modified_edge_indices = lbann.Reshape(lbann.Concatenation(modified_edge_target_indices, axis=1),
                                          dims=str_list([NUM_EDGES*EMBEDDING_DIM]))
-
+    '''
 
 
     neighbor_feature_dims = str_list([NUM_EDGES, 1, EMBEDDING_DIM])
@@ -330,6 +369,8 @@ def make_model():
     node_feature_mat, neighbor_feature_mat, edge_feature_mat, edge_indices, target = \
         graph_data_splitter(_input)
     
+    modified_edge_indices = _index_2d(edge_indices, NUM_EDGES, out_channel)
+    '''
     offset = lbann.Constant(value=out_channel,
                             num_neurons=str_list([NUM_EDGES, 1]),
                             name="GATHER_FEATURE_OFFSET")    
@@ -351,6 +392,7 @@ def make_model():
     modified_edge_indices = lbann.Reshape(lbann.Concatenation(modified_edge_indices, axis=1),
                                          dims=str_list([NUM_EDGES * out_channel]),
                                          name="MODIFIED_EDGE_TARGET_INDICES")
+    '''
     x = NNConvLayer(node_feature_mat,
                            neighbor_feature_mat,
                            edge_feature_mat,

@@ -45,7 +45,7 @@ def init_dist(init_file):
   """Initialize PyTorch distributed backed"""
   torch.cuda.init()
 
-  torch.cuda.set_device(0)
+  torch.cuda.set_device(get_local_rank())
 
   init_file = osp.abspath(init_file)
 

@@ -1,5 +1,4 @@
-
-from utils import get_world_size, init_dist, AverageTracker
+from utils import get_world_size, init_dist, AverageTracker, get_local_rank
 import torch
 import argparse
 import time
@@ -77,7 +76,7 @@ def main(BATCH_SIZE, dist=False, sync=True):
                             pin_memory=True)
 
     if dist:
-        device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
+        device = torch.device(f'cuda:{get_local_rank()}' if torch.cuda.is_available() else 'cpu')
     else:
         device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
 
@@ -85,8 +84,8 @@ def main(BATCH_SIZE, dist=False, sync=True):
 
     if dist:
         model = torch.nn.parallel.DistributedDataParallel(model,
-                                                          device_ids=[0],
-                                                          output_device=0)
+                                                          device_ids=[get_local_rank()],
+                                                          output_device=get_local_rank())
 
     optimizer = torch.optim.Adam(model.parameters(), lr=1e-4)
 
