@@ -92,7 +92,7 @@ def main(BATCH_SIZE, dist=False, sync=True):
     criterion = torch.nn.MSELoss()
 
     if primary:
-        file_name = "MB_"+str(BATCH_SIZE) + "_" + str(world_size) +".log"
+        file_name = "WEAK_SCALING/MB_"+str(BATCH_SIZE) + "_" + str(world_size) +".log"
 
         logger = open(file_name, 'w')
 
