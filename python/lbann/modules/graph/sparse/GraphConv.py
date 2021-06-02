@@ -1,6 +1,5 @@
 import lbann
 from lbann.modules import Module
-from lbann.modules.graph.utils import GraphVertexData
 from lbann.util import str_list
 import lbann.modules.base
 import math 
@@ -89,8 +88,16 @@ class GraphConv(Module):
                 self.activation = type(actvation)
             if not issubclass(self.activation, lbann.Layer):
                 raise ValueError('activation must be a layer')
-    
-    def forward(self, X, A):
+    def message(self,
+                node_features,
+                neighbor_features):
+        return updated_node_features, edge_values
+
+    def aggregate(self,
+                  )
+    def forward(self,
+                node_features,
+                ):
         """Apply Graph Conv Layer to X and use A for message passing
 
         Args:
