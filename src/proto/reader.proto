@@ -86,6 +86,7 @@ message Reader {
 
   PythonDataReader python = 501;
   Node2VecDataReader node2vec = 502;
+  GraphDataReader graph = 503;
 
   repeated Transform transforms = 600;  // Ordered list of transforms to apply.
 
@@ -96,6 +97,15 @@ message Reader {
   bool hdf5_hyperslab_labels = 703;
   int32 num_responses = 704;
   //------------- end of only for HDF5 data reader ------------------
+
+}
+
+message GraphDataReader {
+  int32 max_node_size = 1;     // 
+  int32 max_edge_size = 2;     //
+  int32 num_node_features = 3; //
+  int32 num_edge_features = 4; //
+  bool has_edge_features = 5;  // (Default: True)
 
 }
 
