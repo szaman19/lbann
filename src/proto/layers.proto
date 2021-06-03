@@ -571,17 +571,6 @@ message Layer {
     /// Output tensor dimensions
     string dims = 1;
   }
-  /** @brief Scatter matrix values to specified tensor indices 
-    *
-    *  The first input tensor is the values and the second is the indices. The first  
-    */
-  message Scatter2D {
-    /// Output tensor dimensios 
-    string dims = 1; 
-    string features = 2;
-  }
-
-  message Gather2D{}
 
   /** @brief Gather values from specified tensor indices.
     *

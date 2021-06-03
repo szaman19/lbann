@@ -175,13 +175,13 @@ void data_reader_graph::load_graph_data(const std::string input_filename){
     in.read(reinterpret_cast<char *>(&target_nodes[0]), num_edges*sizeof(int));
 
 
-    ++sample;
     m_num_nodes.append(num_nodes);
     m_num_edges.append(num_edges);
     m_node_features.append(node_features);
     m_source_nodes.append(source_nodes);
     m_target_nodes.append(target_nodes);
 
+    ++sample;
   }
 
 }
@@ -197,7 +197,14 @@ void data_reader_graph::load(){
   m_source_nodes.clear();
   m_target_nodes.clear();
   m_labels.clear();
+  const std::string data_filename = get_data_filename();
 
+  load_graph_data(data_filename);
+
+  m_shuffled_indices.resize(m_num_samples);
+  std::iota(m_shuffled_indices.begin(), m_shuffled_indices.end(), 0);
+  resize_shuffled_indices();
+  select_subset_of_data();
 }
 
 } // namespace lbann
