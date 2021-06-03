@@ -78,7 +78,7 @@ bool data_reader_graph::fetch_datum(CPUMat& X, int data_id, int mb_idx){
 
   // If graph has edge features, fetch edge features
 
-  auto feature_end = m_num_node_features * m_num_nodes;
+  auto feature_end = m_num_node_features * m_max_node_size;
 
   if (m_has_edge_features){
     size_t edge; 
@@ -101,7 +101,7 @@ bool data_reader_graph::fetch_datum(CPUMat& X, int data_id, int mb_idx){
 
   size_t ind;
   for(ind = 0; ind < num_edges; ++ind){
-    X(feature_end+ind, mb_idx) = m_source_nodes[ind];
+    X(feature_end+ind, mb_idx) = m_source_nodes[data_id][ind];
   }
 
   // Pad the rest of the indices with -1
@@ -114,7 +114,7 @@ bool data_reader_graph::fetch_datum(CPUMat& X, int data_id, int mb_idx){
   // Fetch Target Node Indices
 
   for(ind = 0; ind < num_edges; ++ind){
-    X(feature_end+ind, mb_idx) = m_target_nodes[ind];
+    X(feature_end+ind, mb_idx) = m_target_nodes[data_id][ind];
   }
 
   // Pad the rest of the indices with -1
@@ -131,6 +131,12 @@ bool data_reader_graph::fetch_datum(CPUMat& X, int data_id, int mb_idx){
   return true;
 }
 
+int data_reader_graph::get_linearized_data_size() const {
+  auto data_size = (m_max_node_size * m_num_node_features ) + 2* m_max_edge_size + 1; 
+
+  return (m_has_edge_features)? (data_size + m_max_edge_size * m_num_edge_features) : data_size;
+}
+
 bool data_reader_graph::fetch_response(CPUMat& Y, int data_id, int mb_idx){
   return true;
 }
@@ -142,15 +148,15 @@ bool data_reader_graph::fetch_label(CPUMat& Y, int data_id, int mb_idx){
 void data_reader_graph::load_graph_data(const std::string input_filename){
   // TO DO: Load the entire dataset into appropriate vectors
 
-  std::ifsteam in(input_filename.c_str(), std::ios::binary);
+  std::ifstream in(input_filename.c_str(), std::ios::binary);
 
   if(!in){
-    LBANN_ERROR("failed to open data file: ", fn, '\n');
+    LBANN_ERROR("failed to open data file: ", input_filename, '\n');
   }
 
   std::cout << "Data file succesfully opened \n";
 
-
+  auto sample = 0;
 
   while(sample < m_num_samples){
     int num_nodes;
@@ -163,9 +169,9 @@ void data_reader_graph::load_graph_data(const std::string input_filename){
     in.read(reinterpret_cast<char *>(&node_features[0]), num_nodes*m_num_node_features*sizeof(float));
 
     if (m_has_edge_features){
-      vector<float> edge_features (num_edges);
+      std::vector<float> edge_features (num_edges);
       in.read(reinterpret_cast<char *>(&edge_features[0]), num_edges*m_num_edge_features*sizeof(float));
-      m_edge_features.append(edge_features);
+      m_edge_features.push_back(edge_features);
     }
 
     std::vector<int> source_nodes; 
@@ -175,11 +181,11 @@ void data_reader_graph::load_graph_data(const std::string input_filename){
     in.read(reinterpret_cast<char *>(&target_nodes[0]), num_edges*sizeof(int));
 
 
-    m_num_nodes.append(num_nodes);
-    m_num_edges.append(num_edges);
-    m_node_features.append(node_features);
-    m_source_nodes.append(source_nodes);
-    m_target_nodes.append(target_nodes);
+    m_num_nodes.push_back(num_nodes);
+    m_num_edges.push_back(num_edges);
+    m_node_features.push_back(node_features);
+    m_source_nodes.push_back(source_nodes);
+    m_target_nodes.push_back(target_nodes);
 
     ++sample;
   }
@@ -188,7 +194,7 @@ void data_reader_graph::load_graph_data(const std::string input_filename){
 
 void data_reader_graph::load(){
   if (is_master()){
-    std::cout <, "Starting lbann::graph_reader::load \n";
+    std::cout << "Starting lbann::graph_reader::load \n";
   }
   m_num_nodes.clear();
   m_num_edges.clear();

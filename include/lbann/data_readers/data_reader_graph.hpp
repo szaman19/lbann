@@ -45,34 +45,32 @@ namespace lbann{
                       bool shuffle = true);
     data_reader_graph(const data_reader_graph&) = default;
     data_reader_graph& operator=(const data_reader_graph&) = default;
-    ~data_reader_graph() override;
-    data_reader_graph* copy() const override (return new data_reader_graph(*this));
+    ~data_reader_graph() override {}
+    data_reader_graph* copy() const override {return new data_reader_graph(*this);}
 
     std::string get_type() const override{
       return "graph_reader";
     }
     void load() override;
 
-    int get_linearized_data_size() const override{
-
-    } 
-
+    int get_linearized_data_size() const override; 
+    int get_linearized_label_size() const override { return 1; }
   protected:
-    bool fetch_datum(CPUMat& X, int data_id. int mb_idx) override;
-    bool fetch_label(CPUMat& Y) override;
-    bool fetch_response(CPUMat&) override;
+    bool fetch_datum(CPUMat& X, int data_id, int mb_idx) override;
+    bool fetch_label(CPUMat& Y, int data_id, int mb_idx) override;
+    bool fetch_response(CPUMat& Y, int data_id, int mb_idx ) override;
 
   private:
     /** Number of samples in the dataset **/
-    int m_num_samples;
+    unsigned int m_num_samples;
     /** Number of nodes of graph with the most nodes in dataset (for padding) */
-    int m_max_node_size; 
+    unsigned int m_max_node_size; 
     /** Number of edges of graph with the most edges in dataset (for padding) */
-    int m_max_edge_size; 
+    unsigned int m_max_edge_size; 
     /** Dimensionality of node features */
-    int m_num_node_features;
+    unsigned int m_num_node_features;
     /** Dimensionality of edge features */
-    int m_num_edge_features;
+    unsigned int m_num_edge_features;
     /** Whether edge features exist */
     bool m_has_edge_features; 
 
@@ -85,12 +83,14 @@ namespace lbann{
     std::vector<std::vector<float>> m_node_features; 
     std::vector<std::vector<float>> m_edge_features;
     std::vector<std::vector<int>> m_source_nodes; 
-    std::vecotr<std::vector<int>> m_target_nodes;  
+    std::vector<std::vector<int>> m_target_nodes;  
 
     /** Loaded label information */
     std::vector<float> m_labels;
 
-  }  // namespace lbann
-}
+    void load_graph_data(const std::string input_filename);
+
+  };  
+}  // namespace lbann
 
 #endif // LBANN_DATA_READER_GRAPH_HPP
