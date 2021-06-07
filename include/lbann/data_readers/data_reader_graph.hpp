@@ -37,7 +37,8 @@ namespace lbann{
   */
   class data_reader_graph : public generic_data_reader {
   public:
-    data_reader_graph(int max_node_size,
+    data_reader_graph(int num_samples, 
+                      int max_node_size,
                       int max_edge_size,
                       int num_node_features,
                       int num_edge_features = 0,
@@ -55,6 +56,7 @@ namespace lbann{
 
     int get_linearized_data_size() const override; 
     int get_linearized_label_size() const override { return 1; }
+    const std::vector<int> get_data_dims() const override {  return {get_linearized_data_size()}; }
   protected:
     bool fetch_datum(CPUMat& X, int data_id, int mb_idx) override;
     bool fetch_label(CPUMat& Y, int data_id, int mb_idx) override;
@@ -88,7 +90,7 @@ namespace lbann{
     /** Loaded label information */
     std::vector<float> m_labels;
 
-    void load_graph_data(const std::string input_filename);
+    void load_dataset();
 
   };  
 }  // namespace lbann

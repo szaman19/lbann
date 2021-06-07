@@ -382,6 +382,17 @@ void init_data_readers(
                   "but LBANN is not built with "
                   "largescale_node2vec or HavoqGT");
 #endif // LBANN_HAS_LARGESCALE_NODE2VEC
+    }else if (name =="graph"){
+      const auto& params = readme.graph();
+      reader = new data_reader_graph(readme.num_samples(),
+                                     params.max_node_size(),
+                                     params.max_edge_size(),
+                                     params.num_node_features(),
+                                     params.num_edge_features(),
+                                     params.has_edge_features(),
+                                     shuffle);
+      reader->set_data_filename(readme.data_filename());
+
     } else {
         err << __FILE__ << " " << __LINE__ << " :: unknown name for data reader: "
             << name;

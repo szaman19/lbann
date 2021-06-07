@@ -30,13 +30,15 @@
 
 namespace lbann{
 
-data_reader_graph::data_reader_graph(int max_node_size,
+data_reader_graph::data_reader_graph(int num_samples,
+                                     int max_node_size,
                                      int max_edge_size,
                                      int num_node_features,
                                      int num_edge_features,
                                      bool has_edge_features,
                                      bool shuffle)
   : generic_data_reader(shuffle),
+    m_num_samples(num_samples),
     m_max_node_size(max_node_size),
     m_max_edge_size(max_edge_size),
     m_num_node_features(num_node_features),
@@ -133,8 +135,8 @@ bool data_reader_graph::fetch_datum(CPUMat& X, int data_id, int mb_idx){
 
 int data_reader_graph::get_linearized_data_size() const {
   auto data_size = (m_max_node_size * m_num_node_features ) + 2* m_max_edge_size + 1; 
-
-  return (m_has_edge_features)? (data_size + m_max_edge_size * m_num_edge_features) : data_size;
+  auto return_val = (m_has_edge_features)? (data_size + m_max_edge_size * m_num_edge_features) : data_size; 
+  return return_val;
 }
 
 bool data_reader_graph::fetch_response(CPUMat& Y, int data_id, int mb_idx){
@@ -145,8 +147,9 @@ bool data_reader_graph::fetch_label(CPUMat& Y, int data_id, int mb_idx){
   return true;
 }
 
-void data_reader_graph::load_graph_data(const std::string input_filename){
+void data_reader_graph::load_dataset(){
   // TO DO: Load the entire dataset into appropriate vectors
+  const std::string input_filename = get_data_filename();
 
   std::ifstream in(input_filename.c_str(), std::ios::binary);
 
@@ -165,20 +168,24 @@ void data_reader_graph::load_graph_data(const std::string input_filename){
     in.read(reinterpret_cast<char*>(&num_nodes), sizeof(int));
     in.read(reinterpret_cast<char*>(&num_edges), sizeof(int));
 
-    std::vector<float> node_features (num_nodes);
+    std::vector<float> node_features (num_nodes * m_num_node_features);
     in.read(reinterpret_cast<char *>(&node_features[0]), num_nodes*m_num_node_features*sizeof(float));
 
     if (m_has_edge_features){
-      std::vector<float> edge_features (num_edges);
+      std::vector<float> edge_features (num_edges * m_num_edge_features);
       in.read(reinterpret_cast<char *>(&edge_features[0]), num_edges*m_num_edge_features*sizeof(float));
       m_edge_features.push_back(edge_features);
     }
 
-    std::vector<int> source_nodes; 
-    std::vector<int> target_nodes; 
+    std::vector<int> source_nodes(num_edges); 
+    std::vector<int> target_nodes(num_edges); 
 
     in.read(reinterpret_cast<char *>(&source_nodes[0]), num_edges*sizeof(int));
     in.read(reinterpret_cast<char *>(&target_nodes[0]), num_edges*sizeof(int));
+
+    float target; 
+
+    in.read(reinterpret_cast<char *>(&target), sizeof(float));
 
 
     m_num_nodes.push_back(num_nodes);
@@ -186,6 +193,7 @@ void data_reader_graph::load_graph_data(const std::string input_filename){
     m_node_features.push_back(node_features);
     m_source_nodes.push_back(source_nodes);
     m_target_nodes.push_back(target_nodes);
+    m_labels.push_back(target);
 
     ++sample;
   }
@@ -203,14 +211,12 @@ void data_reader_graph::load(){
   m_source_nodes.clear();
   m_target_nodes.clear();
   m_labels.clear();
-  const std::string data_filename = get_data_filename();
-
-  load_graph_data(data_filename);
 
   m_shuffled_indices.resize(m_num_samples);
   std::iota(m_shuffled_indices.begin(), m_shuffled_indices.end(), 0);
   resize_shuffled_indices();
   select_subset_of_data();
+  load_dataset();
 }
 
 } // namespace lbann

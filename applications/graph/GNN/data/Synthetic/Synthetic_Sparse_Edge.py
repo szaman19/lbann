@@ -26,10 +26,10 @@ def sample_dims_func():
     node_feature_size = num_nodes * number_node_features
     edge_indices_size = max_edges * 2
     edge_features_size = max_edges * number_edge_features
-    return (node_feature_size + edge_indices_size + edge_features_size + num_nodes + 1,)
+    return (node_feature_size + edge_indices_size + edge_features_size + 1,)
 
 
-dataset = np.random.randint(2, size=(number_samples, sample_dims_func()[0]))
+dataset = np.load("/g/g92/zaman2/lbann/applications/graph/GNN/data/Synthetic/python_npy_test.npy")
 
 
 def get_sample_func(index):
