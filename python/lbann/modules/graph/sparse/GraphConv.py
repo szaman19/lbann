@@ -93,8 +93,7 @@ class GraphConv(Module):
                 neighbor_features):
         return updated_node_features, edge_values
 
-    def aggregate(self,
-                  )
+
     def forward(self,
                 node_features,
                 ):

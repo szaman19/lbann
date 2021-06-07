@@ -29,11 +29,13 @@ def make_graph_reader(filename,
                       num_node_features,
                       num_edge_features,
                       has_edge_features=True):
+    print(num_samples)
     reader = lbann.reader_pb2.DataReader()
     _reader = reader.reader.add()
     _reader.name = 'graph'
     _reader.role = 'train'
     _reader.shuffle = True
+    _reader.num_samples = num_samples
     _reader.percent_of_data_to_use = 1.0
     _reader.data_filedir = data_dir
     _reader.data_filename = filename

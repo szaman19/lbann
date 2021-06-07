@@ -159,8 +159,8 @@ def graph_data_splitter(_input,
 	edge_indices_targets = NUM_EDGES
 	split_indices.append(edge_indices_targets)
 
-	node_mask = NUM_NODES
-	split_indices.append(node_mask)
+	# node_mask = NUM_NODES
+	# split_indices.append(node_mask)
 
 	target = 1
 	split_indices.append(target)
@@ -185,9 +185,9 @@ def graph_data_splitter(_input,
 	target_nodes = lbann.Reshape(lbann.Identity(graph_input),
 		dims=str_list([NUM_EDGES, 1]),
 		name="target_nodes")
-	nodes_mask = lbann.Reshape(lbann.Identity(graph_input),
-		dims=str_list([NUM_NODES, 1]),
-		name="masked_nodes")
+	# nodes_mask = lbann.Reshape(lbann.Identity(graph_input),
+	# 	dims=str_list([NUM_NODES, 1]),
+	# 	name="masked_nodes")
 	label = lbann.Reshape(lbann.Identity(graph_input),
 		dims=str_list([1]),
 		name="Graph_Label")
