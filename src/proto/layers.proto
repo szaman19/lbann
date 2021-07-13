@@ -92,6 +92,7 @@ message Layer {
     Sort sort = 325;
     WeightsLayer weights_layer = 326;
     Tessellate tessellate = 327;
+    Transpose transpose = 337;
     Scatter scatter = 334;
     Gather gather = 335;
     BatchwiseReduceSum batchwise_reduce_sum = 336;
@@ -549,6 +550,8 @@ message Layer {
   message Tessellate {
     string dims = 1;
   }
+
+  message Transpose {}
 
   /** @brief Scatter values to specified tensor indices.
     *

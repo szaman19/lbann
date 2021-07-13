@@ -30,6 +30,7 @@ set_full_path(THIS_DIR_SOURCES
   stop_gradient.cpp
   sum.cpp
   tessellate.cpp
+  transpose.cpp
   uniform.cpp
   unpooling.cpp
   weighted_sum.cpp
