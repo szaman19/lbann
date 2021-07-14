@@ -102,6 +102,7 @@
 #include "lbann/layers/transform/cross_grid_sum_slice.hpp"
 #include "lbann/layers/transform/cross_grid_sum.hpp"
 #include "lbann/layers/transform/tessellate.hpp"
+#include "lbann/layers/transform/transpose.hpp"
 #include "lbann/layers/transform/uniform.hpp"
 #include "lbann/layers/transform/unpooling.hpp"
 #include "lbann/layers/transform/weighted_sum.hpp"
@@ -252,6 +253,7 @@ private:
     LBANN_REGISTER_BUILDER(Sum, sum);
     LBANN_REGISTER_BUILDER(WeightedSum, weighted_sum);
     LBANN_REGISTER_BUILDER(WeightsLayer, weights);
+    LBANN_REGISTER_BUILDER(Transpose, transpose);
 
     // Activations
     LBANN_REGISTER_DEFAULT_BUILDER(Identity, identity);
