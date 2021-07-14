@@ -66,18 +66,27 @@ class Graph_Conv(Module):
     global_count = 0
     """docstring for Graph_Conv"""
     def __init__(self,
-                 output_channels,
+                 input_feature_dim,
+                 output_feature_dim,
                  num_layers,
-                 num_vertices,
+                 num_nodes,
+                 num_edges,
                  edge_nn=None,
                  name=None):
         super(Graph_Conv, self).__init__()
         Graph_Conv.global_count += 1
-        self.output_channels = output_channels
+        self.output_channel_dim = output_feature_dim
+        self.input_channel_dim = input_feature_dim
         self.num_layers = num_layers
-        self.edge_conv = NN_Conv(num_vertices,
+        self.num_nodes= num_nodes
+        self.num_edges = num_edges
+
+        self.edge_conv = NN_Conv(edge_nn,
+                                 num_nodes,
+                                 num_edges,
+                                 input_feature_dim,
                                  output_channels,
-                                 edge_nn)
+                                 )
         self.name = (name if name else
                      'GraphConv_{}'.format(Graph_Conv.global_count))
 
@@ -90,65 +99,51 @@ class Graph_Conv(Module):
             weight_init = \
                 lbann.Weights(initializer=lbann.UniformInitializer(min=-1/(math.sqrt(output_channels)), 
                                                                    max=1/(math.sqrt(output_channels))))
-            weight_layer = \
-                lbann.WeightsLayer(dims=str_list([output_channels, output_channels]),
-                                   weights=weight_init,
-                                   name=self.name+'_'+str(i)+'_weight')
-            self.weights.append(weight_layer)
+
+            self.weights.append(nn.ChannelwiseFullyConnectedModule(output_channels, 
+                                                                   bias=False, 
+                                                                   weights=weight_init,
+                                                                   name=f"{self.name}_{i}_weight"))
 
     def forward(self,
                 node_features,
-                adjacency_mat,
-                edge_feature_mat,
-                edge_feature_adj):
+                node_feature_target_indices,
+                edge_features,
+                edge_source_indices,
+                edge_target_indices):
+        
+        if (input_feature_dim < self.output_channels):
 
-        input_features = node_features.size(1)
-        num_nodes = node_features.size(0)
+            num_zeros = self.output_channels - input_feature_dim
 
-        if (input_features < self.output_channels):
-            for i in range(num_nodes):
-                num_zeros = self.output_channels - input_features
-                zeros = lbann.Constant(value=0,
-                                       num_neurons=str_list([1, num_zeros]),
-                                       name=self.name+'_zero_'+str(i))
-                node_features[i] = lbann.Concatenation(node_features[i],
-                                                       zeros,
-                                                       axis=1)
-            node_features.update_num_features(self.output_channels)
-        input_features = node_features.size(1)
-        # print("Graph_Conv input layer ", input_features)
-        # print("Graph_Conv output layer ", self.output_channels)
+            zeros = lbann.Constant(value=0,
+                                   num_neurons=str_list([num_nodes, num_zeros]))
 
-       
+            node_features = lbann.Concatenation(node_features, zeros, axis=1)
+      
         for layer in range(self.num_layers):
-            nf_clone = []
-            for node in range(num_nodes):
-                temp = lbann.Split(node_features[node])
-                node_features[node] = lbann.Identity(temp)
-                nf_clone.append(lbann.Identity(temp))
-            nf_clone = GraphVertexData(nf_clone, input_features)
+            nf_clone = lbann.Identity(lbann.Split(node_features))
+            
+            messages = self.weights[layer](nf_clone)
 
-            X_mat = nf_clone.get_mat()
-            messages = lbann.MatMul(X_mat, self.weights[layer])
-            aggregate = lbann.MatMul(adjacency_mat, messages)
+            aggregate = lbann.Scatter(adjacency_mat, messages, self.output_channels)
 
-            M = GraphVertexData.matrix_to_graph(aggregate,
-                                                num_nodes,
-                                                self.output_channels)
+            Node_FT_GRU_input = aggregate
+
+
             # Update node_features according to edge convolutions
-            node_features = self.edge_conv(node_features,
-                                           edge_feature_mat,
-                                           edge_feature_adj)
-            for i in range(num_nodes):
-                # Reshape node features to squeeze dimension
-                node_features[i] = \
-                    lbann.Reshape(node_features[i],
-                                  dims=str(self.output_channels))
-                # Run the nodes through the GRU cell
-                node_features[i] = \
-                    lbann.Reshape(self.rnn(M[i], node_features[i])[1],
-                                  dims=str_list([1, self.output_channels]))
-        node_features.update_num_features(self.output_channels)
+
+            # Generate the neighbor matrices with gather 
+
+            neighbor_features = lbann.Reshape(lbann.Gather(node_features, edge_source_indices),
+                                              dims=str_list([num_edges, 1, self.output_channels]))
+            Node_FT_GRU_PrevState = self.edge_conv(node_features,
+                                                   neighbor_features,
+                                                   edge_features,
+                                                   edge_target_indices)
+
+            node_features = self.rnn(Node_FT_GRU_input, Node_FT_GRU_PrevState)
+        
         return node_features
 
 
@@ -172,7 +167,10 @@ class Graph_Attention(Module):
         self.name = (name if name else
                      'GraphAttention_{}'.format(Graph_Attention.global_count))
 
-    def forward(self, updated_nodes, original_nodes):
+    def forward(self,
+                updated_nodes,
+                original_nodes,
+                num_nodes):
         num_nodes = original_nodes.size(0)
         for i in range(num_nodes):
             concat = lbann.Concatenation(original_nodes[i],
