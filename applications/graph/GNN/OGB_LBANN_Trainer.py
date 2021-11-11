@@ -5,15 +5,10 @@ import lbann.contrib.args
 import argparse
 import os
 import configparser
-import math
 import data.LSC_PPQM4M
-from lbann.util import str_list
-from lbann.modules.graph import NNConv
-from lbann.modules import ChannelwiseFullyConnectedModule
-
-import numpy as np
 
 from NNConvModel import make_model
+
 desc = ("Training Edge-conditioned Graph Convolutional Model Using LBANN ")
 
 parser = argparse.ArgumentParser(description=desc)
@@ -50,12 +45,12 @@ parser.add_argument(
     help='number of node features for NNConv (deafult: 32)', metavar='NUM')
 
 parser.add_argument(
-    '--num-samples', action='store', default=100000, type=int,
-    help='number of Samples (deafult: 100000)', metavar='NUM')
+    '--num-samples', action='store', default=3045360, type=int,
+    help='number of Samples (deafult: 3045360)', metavar='NUM')
 
 parser.add_argument(
-    '--node-embeddings', action='store', default=100, type=int,
-    help='dimensionality of node feature embedding (deafult: 100)', metavar='NUM')
+    '--node-embeddings', action='store', default=64, type=int,
+    help='dimensionality of node feature embedding (deafult: 64)', metavar='NUM')
 
 parser.add_argument(
     '--edge-embeddings', action='store', default=16, type=int,
@@ -141,7 +136,7 @@ model = make_model(NUM_NODES,
                    NUM_PROCESS_GROUPS)
 
 optimizer = lbann.SGD(learn_rate=1e-4)
-data_reader = data.LSC_PPQM4M.make_data_reader("LSC_100K")
+data_reader = data.LSC_PPQM4M.make_data_reader("LSC_FULL_DATA")
 trainer = lbann.Trainer(mini_batch_size=MINI_BATCH_SIZE)
 
 

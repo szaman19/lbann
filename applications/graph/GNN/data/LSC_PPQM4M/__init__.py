@@ -14,7 +14,7 @@ def make_data_reader(classname,
     _reader = reader.reader.add()
     _reader.name = 'python'
     _reader.role = 'train'
-    _reader.shuffle = True
+    _reader.shuffle = False
     _reader.percent_of_data_to_use = 1.0
     _reader.validation_percent = validation_percent
     _reader.python.module = classname

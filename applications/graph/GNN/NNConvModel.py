@@ -318,8 +318,9 @@ def make_model(NUM_NODES,
 		print_global_stat_only=False)
 	gpu_usage = lbann.CallbackGPUMemoryUsage()
 	timer = lbann.CallbackTimer()
-
-	callbacks = [training_output, gpu_usage, timer]
+	sync_gpu = lbann.CallbackSyncLayers(sync_gpus=True)
+	timeline = lbann.CallbackTimeline(directory="/p/vast1/zaman2/lbann/applications/graph/GNN/timelines")	
+	callbacks = [training_output, gpu_usage, timer, sync_gpu, timeline]
 	model = lbann.Model(NUM_EPOCHS,
 		layers=layers,
 		objective_function=loss,

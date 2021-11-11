@@ -73,7 +73,7 @@ class GINConv(Module):
         neighborhoods = lbann.Reshape(neighborhoods, dims=str_list([self.num_edges, self.output_channel_size]))
 
         aggregated_node_features = GraphReduce(neighborhoods, source_indices, [self.num_nodes, 
-                                                                       self.output_channel_size])
+                                                                               self.output_channel_size])
         ## Apply activation 
         if activation:
             aggregated_node_features = activation(aggregated_node_features)
