@@ -56,5 +56,9 @@ set_full_path(THIS_DIR_HEADERS
   gather.hpp
   )
 
+if (LBANN_HAS_DISTCONV)
+  add_subdirectory(distconv)
+endif()
+
 # Propagate the files up the tree
 set(HEADERS "${HEADERS}" "${THIS_DIR_HEADERS}" PARENT_SCOPE)
