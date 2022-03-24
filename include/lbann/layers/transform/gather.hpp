@@ -32,6 +32,26 @@
 
 namespace lbann {
 
+#ifdef LBANN_HAS_DISTCONV
+template <typename TensorDataType, data_layout Layout, El::Device Device>
+class gather_distconv_adapter
+  :  public data_type_distconv_adapter <TensorDataType>{
+  public:
+    using TensorDevType = typename data_type_distconv_adapter<TensorDataType>::TensorDevType;
+
+    gather_distconv_adapter(Layer &layer) : data_type_distconv_adapter<TensorDataType>(layer){}
+    virtual ~gather_distconv_adapter() = default;
+
+    void setup_distributions(tensor_overlap_constraints &constraints) override;
+    void setup_layer(size_t workspace_capacity) override;
+    void fp_compute();
+    void bp_compute();
+
+    std::unique_ptr<dc::Gather<TensorDataType>> m_gather_operator;
+    size_t m_workspace_buffer_size{0};
+  };
+#endif // LBANN_HAS_DISTCONV
+
 /** @brief Gather values from specified tensor indices
  *
  *  Expects two input tensors: an @f$ N @f$-D data tensor and a 1D
@@ -89,6 +109,13 @@ protected:
   void setup_dims(DataReaderMetaData& dr_metadata) override;
   void fp_compute() override;
   void bp_compute() override;
+#ifdef LBANN_HAS_DISTCONV
+  friend class gather_distconv_adapter<TensorDataType, Layout, Device>;
+  void setup_distconv_adapter(const DataReaderMetaData& dr_metadata) override;
+  bool is_distconv_supported() const override;
+  gather_distconv_adapter<TensorDataType, Layout, Device>& get_distconv_adapter() override;
+  const gather_distconv_adapter<TensorDataType, Layout, Device>& get_distconv_adapter() const override;
+#endif // LBANN_HAS_DISTCONV
 private:
   int m_gather_axis;
 

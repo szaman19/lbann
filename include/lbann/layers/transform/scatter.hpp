@@ -47,7 +47,7 @@ class scatter_distconv_adapter
     scatter_distconv_adapter(Layer &layer) : data_type_distconv_adapter<TensorDataType>(layer){}
     virtual ~scatter_distconv_adapter() = default;
 
-    void setup_distribution(tensor_overlap_constraints &constraints) override;
+    void setup_distributions(tensor_overlap_constraints &constraints) override;
     void setup_layer(size_t workspace_capacity) override;
     void fp_compute();
     void bp_compute();
@@ -114,14 +114,13 @@ protected:
   void bp_compute() override;
 #ifdef LBANN_HAS_DISTCONV
   friend class scatter_distconv_adapter<TensorDataType, Layout, Device>;
-  void setup_distconv_adapter();
+  void setup_distconv_adapter(const DataReaderMetaData& dr_metadata) override;
   bool is_distconv_supported() const override;
   scatter_distconv_adapter<TensorDataType, Layout, Device>& get_distconv_adapter() override;
   const scatter_distconv_adapter<TensorDataType, Layout, Device>& get_distconv_adapter() const override;
 #endif // LBANN_HAS_DISTCONV
 private:
   int m_scatter_axis;
-
 };
 
 // =========================================================
