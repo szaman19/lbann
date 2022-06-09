@@ -40,7 +40,8 @@ Performance optimizations:
    buffered data coordinator
  - Use default-allocated GPU memory for long-lived buffers
  - Optimized GPU kernels for entry-wise operators
-
+ - Added circular (periodic) padding transformations for 2D and 3D tensors
+ 
 Model portability & usability:
  - Weight initialization from NumPy files
  - Expanded layer documentation
@@ -118,6 +119,7 @@ Python front-end:
  - Added support for non square kernels, padding, stride, and
    dilation for the convolution module
  - Support for OpenMPI launcher
+
 
 Performance optimizations:
  - Use cuDNN 8 RNN API and CUDA Graphs in GRU layer
